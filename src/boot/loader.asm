@@ -42,10 +42,6 @@ detect_memory:
     mov si, detecting
     call print
 
-    ; xchg bx, bx
-
-    ; mov byte [0xb8000], 'P'
-
     jmp prepare_protected_mode
 
 prepare_protected_mode:
@@ -104,7 +100,18 @@ protect_mode:
 
     mov byte [0xb8000], 'P'
 
-    jmp $
+    mov esp, 0x10000
+
+    mov edi, 0x10000; 读取的目标内存
+    mov ecx, 10; 起始扇区
+    mov bl, 200; 扇区数量
+
+    call read_disk
+
+    xchg bx, bx
+
+    jmp dword code_selector:0x10000
+    ud2
 
 read_disk:
 
