@@ -108,7 +108,7 @@ protect_mode:
 
     call read_disk
 
-    xchg bx, bx
+    ;xchg bx, bx
 
     jmp dword code_selector:0x10000
     ud2

@@ -1,6 +1,17 @@
 BUILD:=../build
 SRC=.
 ENTRYPOINT=0x10000
+CFLAGS:=-m32
+DEBUG:=-g
+INCLUDE:=-I$(SRC)/include
+
+CFLAGS+=-fno-builtin # no build in funcs
+CFLAGS+=-nostdinc  # no std include
+CFLAGS+=-fno-pic    # no position independent code
+CFLAGS+=-fno-pie   # no position independent exec
+CFLAGS+=-nostdlib
+CFLAGS+=-fno-stack-protector
+CFLAGS:=$(strip ${CFLAGS})
 
 $(BUILD)/boot/%.bin: $(SRC)/boot/%.asm
 	$(shell mkdir -p $(dir $@))
@@ -8,13 +19,20 @@ $(BUILD)/boot/%.bin: $(SRC)/boot/%.asm
 
 $(BUILD)/kernel/%.o: $(SRC)/kernel/%.asm
 	$(shell mkdir -p $(dir $@))
-	nasm -f elf32 $< -o $@
+	nasm -f elf32 $(DEBUG) $< -o $@
 
-$(BUILD)/kernel.bin: $(BUILD)/kernel/start.o
+$(BUILD)/kernel/%.o: $(SRC)/kernel/%.c
+	$(shell mkdir -p $(dir $@))
+	gcc $(CFLAGS) $(DEBUG) $(INCLUDE) -c $< -o $@
+
+$(BUILD)/kernel.bin: $(BUILD)/kernel/start.o \
+					$(BUILD)/kernel/main.o
+
 	$(shell mkdir -p $(dir $@))
 	ld -m elf_i386 -static $^ -o $@ -Ttext $(ENTRYPOINT)
 
 $(BUILD)/system.bin: $(BUILD)/kernel.bin
+
 	objcopy -O binary $< $@
 
 $(BUILD)/system.map: $(BUILD)/kernel.bin
@@ -31,7 +49,7 @@ $(BUILD)/master.img: $(BUILD)/boot/boot.bin \
 	dd if=$(BUILD)/system.bin of=$@ bs=512 count=200 seek=10 conv=notrunc
 
 
-test:$(BUILD)/system.bin
+test:$(BUILD)/master.img
 
 .PHONY: clean
 clean:
