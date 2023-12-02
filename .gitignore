@@ -3,3 +3,9 @@ build
 *.bin
 *.img
 *.ini
+*.out
+*.gz
+*.zst
+
+bochs/src
+bochs/pkg
