@@ -6,6 +6,7 @@ build
 *.out
 *.gz
 *.zst
+*.s
 
 bochs/src
 bochs/pkg
