@@ -2,20 +2,16 @@
 #include <jp/types.h>
 #include <jp/io.h>
 #include <jp/string.h>
+#include <jp/console.h>
 
-
-//#define CRT_ADDR_REG 0x3d4
-//#define CRT_DATA_REG 0x3d5
-
-//#define CRT_CURSOR_H 0xe
-//#define CRT_CURSOR_L 0xf
-
-char msg[]="hello world!";
-char buf[1024];
+char msg[]="hello jp!!!\n";
 
 void kernel_init(void)
 {
-    int res;
-    res = strcmp(buf, msg);
-    strcpy(buf, msg);
+    console_init();
+    int cnt = 30;
+    while (1)
+    {
+        console_write(msg, sizeof(msg)-1);
+    }
 }
