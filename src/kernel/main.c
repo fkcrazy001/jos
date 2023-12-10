@@ -3,15 +3,22 @@
 #include <jp/io.h>
 #include <jp/string.h>
 #include <jp/console.h>
+#include <jp/stdarg.h>
 
-char msg[]="hello jp!!!\n";
+void test_arg(int cnt, ...) {
+    va_list args;
+    va_start(args, cnt);
+    
+    int arg;
+    while (cnt--)
+    {
+        arg = va_arg(args, int);
+    }
+    va_end(args);
+}
 
 void kernel_init(void)
 {
     console_init();
-    int cnt = 30;
-    while (1)
-    {
-        console_write(msg, sizeof(msg)-1);
-    }
+    test_arg(5, 1, 2, 3, 4, 5);
 }
