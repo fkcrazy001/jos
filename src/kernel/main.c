@@ -4,15 +4,13 @@
 #include <jp/string.h>
 #include <jp/console.h>
 #include <jp/printk.h>
+#include <jp/assert.h>
+
 
 void kernel_init(void)
 {
     console_init();
-    int cnt = 30;
-    printk("very long long long long long long long long long long long long long long long longlong long long long long long long long msg");
-    printk("\n");
-    printk("very long long long long long long long long long long long long long long long longlong long long long long long long long msg");
-    while(cnt--) {
-        //printk("hello jp!!! cnt is %d, hex is 0x%x\n, addr format is %p", cnt, cnt, cnt);
-    }
+    assert(1<3);
+    assert(1>3);
+    panic("test panic");
 }
