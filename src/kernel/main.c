@@ -5,12 +5,12 @@
 #include <jp/console.h>
 #include <jp/printk.h>
 #include <jp/assert.h>
-
+#include <jp/debug.h>
 
 void kernel_init(void)
 {
     console_init();
-    assert(1<3);
-    assert(1>3);
-    panic("test panic");
+    BMB;
+    DEBUGK("debug jos\n");
+    BMB;
 }
