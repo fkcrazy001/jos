@@ -6,11 +6,10 @@
 #include <jp/printk.h>
 #include <jp/assert.h>
 #include <jp/debug.h>
+#include <jp/global.h>
 
 void kernel_init(void)
 {
     console_init();
-    BMB;
-    DEBUGK("debug jos\n");
-    BMB;
+    gdt_init();
 }
