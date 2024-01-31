@@ -7,9 +7,11 @@
 #include <jp/assert.h>
 #include <jp/debug.h>
 #include <jp/global.h>
+#include <jp/task.h>
 
 void kernel_init(void)
 {
     console_init();
     gdt_init();
+    task_init();
 }

@@ -33,6 +33,8 @@ $(BUILD)/kernel.bin: $(BUILD)/kernel/start.o \
 					$(BUILD)/kernel/assert.o \
 					$(BUILD)/kernel/debug.o \
 					$(BUILD)/kernel/global.o \
+					$(BUILD)/kernel/task.o \
+					$(BUILD)/kernel/scheduler.o \
 					$(BUILD)/lib/string.o \
 					$(BUILD)/lib/vsprintf.o \
 
