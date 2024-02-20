@@ -11,10 +11,48 @@ mov es, ax
 mov ss, ax
 mov sp, 0x7c00
 
-mov si, booting
+mov si, real_mode_inter
+xchg bx, bx
 call print
 
+
+mov word [0x80*4], iprint
+mov word [0x80*4+2],0
+xchg bx, bx
+int 0x80
+
+; mod 0 error
+
+mov word [0], iprint
+mov word [2],0
+
+mov si, real_mode_inter
+mov dx, 0
+mov ax, 0
+mov bx, 0
+
+div bx ;; (dx:ax)/bx
+
+
+jmp $
+
+real_mode_inter:
+    db ".", 0
+
 ;xchg bx, bx
+
+iprint:
+    mov si, real_mode_inter
+    mov ah, 0x0e
+.next:
+    mov al, [si]
+    cmp al, 0
+    jz .done
+    int 0x10
+    inc si
+    jmp .next
+.done:
+    iret
 
 mov edi, 0x1000; 读取的目标内存
 mov ecx, 2; 起始扇区
