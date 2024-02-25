@@ -25,6 +25,9 @@ typedef struct descriptor_t /* 共 8 个字节 */
     unsigned char base_high;       // 基地址 24 ~ 31 位
 } _packed descriptor_t;
 
+#define SEG_CODE_OR_DATA  1
+#define SEG_SYSTEM        0
+
 // 段选择子
 typedef union selector_t
 {
@@ -44,5 +47,8 @@ typedef struct pointer_t
 } _packed pointer_t;
 
 void gdt_init(void);
+
+#define KERNEL_CS   (1 << 3)
+#define KERNEL_DS   (2 << 3)
 
 #endif
