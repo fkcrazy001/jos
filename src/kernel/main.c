@@ -9,13 +9,19 @@
 #include <jp/global.h>
 #include <jp/task.h>
 #include <jp/interrupt.h>
+#include <jp/stdlib.h>
 
 void kernel_init(void)
 {
     console_init();
     gdt_init();
     interrupt_init();
-    //asm volatile("int $0x80\n");
-    //int a = 11/0; // modify 0 error
-    task_init();
+    //task_init();
+    asm volatile("sti\n"
+                "movl %eax, %eax\n");
+    u32 counter = 0;
+    while(true) {
+        DEBUGK("looping in kernel init %d\n",counter++);
+        delay(1e7*3);
+    }
 }

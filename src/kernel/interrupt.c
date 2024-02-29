@@ -8,7 +8,7 @@
 static gate_t idt[IDT_SIZE];
 static pointer_t pidt;
 
-#define   INTERRUPT_ENTRY_SIZE   0x20
+#define   INTERRUPT_ENTRY_SIZE   0x30
 extern void* handler_entry_table[INTERRUPT_ENTRY_SIZE];
 
 typedef void (*handler_t)(u32 vector, u32 eflags);
@@ -53,7 +53,7 @@ static void exception_handler(u32 vector, u32 error)
     //while (true); // spin here
 }
 
-void interrupt_init(void)
+static void idt_init(void)
 {
     int i = 0;
     for ( i = 0; i < INTERRUPT_ENTRY_SIZE; ++i) {
@@ -74,9 +74,19 @@ void interrupt_init(void)
     for (i = 0; i < INTERRUPT_ENTRY_SIZE; ++i) {
         handler_table[i] = exception_handler;
     }
+
+    for (i=PIC_INT_VEC_START; i<=PIC_INT_VEC_END; ++i) {
+        handler_table[i]=pic_int_handler;
+    }
     pidt.base = (u32)idt;
     pidt.limit = sizeof(idt) - 1;
     //BMB;
 
     asm volatile("lidt pidt\n");
+}
+
+void interrupt_init(void)
+{
+    pic_int_init();
+    idt_init();
 }

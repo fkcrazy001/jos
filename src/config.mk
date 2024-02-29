@@ -1,0 +1,2 @@
+
+CFLAGS+=-DDEBUG_LOG

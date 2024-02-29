@@ -26,6 +26,12 @@ typedef struct gate {
 
 #define IDT_SIZE 256
 
+#define PIC_INT_VEC_START    0x20
+#define PIC_INT_VEC_END      0x2f
+
+void pic_int_handler(u32 vector, u32 errno);
+void pic_int_init(void);
+
 void interrupt_init(void);
 
 #endif

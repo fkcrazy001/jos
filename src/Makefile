@@ -5,6 +5,8 @@ CFLAGS:=-m32
 DEBUG:=-g
 INCLUDE:=-I$(SRC)/include
 
+include config.mk
+
 CFLAGS+=-fno-builtin # no build in funcs
 CFLAGS+=-nostdinc  # no std include
 CFLAGS+=-fno-pic    # no position independent code
@@ -37,8 +39,10 @@ $(BUILD)/kernel.bin: $(BUILD)/kernel/start.o \
 					$(BUILD)/kernel/scheduler.o \
 					$(BUILD)/kernel/interrupt.o \
 					$(BUILD)/kernel/handler.o \
+					$(BUILD)/kernel/pic.o \
 					$(BUILD)/lib/string.o \
 					$(BUILD)/lib/vsprintf.o \
+					$(BUILD)/lib/stdlib.o \
 
 	$(shell mkdir -p $(dir $@))
 	ld -m elf_i386 -static $^ -o $@ -Ttext $(ENTRYPOINT)
