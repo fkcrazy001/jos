@@ -1,6 +1,7 @@
 #include <jp/task.h>
 #include <jp/task.h>
 #include <jp/printk.h>
+#include <jp/debug.h>
 
 #define PAGE_SIZE 0x1000
 
@@ -24,7 +25,7 @@ void yield(void)
     task_switch(nxt);
 }
 
-static void task_create(task_t* task, task_func fn, void* arg)
+static void task_create(task_t* task, task_func fn)
 {
     u32 stack = (u32)task + PAGE_SIZE;
     stack -= sizeof(task_frame_t);
@@ -34,25 +35,32 @@ static void task_create(task_t* task, task_func fn, void* arg)
     tf->edi = 0x33333333;
     tf->ebp = task_create; // trace use
     tf->eip = fn;
-    tf->arg = arg;
+    //tf->arg = arg;
 
     task->stk = stack; // lower down
 }
 
-static void func1(void* arg)
+static _ofp void func1(void)
 {
+    asm volatile("sti\n");
     while (1)
     {
-        printk("task%d\n", (int)arg);
-        yield();
-        int cnt = 10000;
-        while(cnt--); // simple delay
+        printk("%s\n",__func__);
+    }
+}
+
+static _ofp void func2(void)
+{
+    asm volatile("sti\n");
+    while (1)
+    {
+        printk("%s\n",__func__);
     }
 }
 
 void task_init(void)
 {
-    task_create(a, func1, (void*)1);
-    task_create(b, func1, (void*)2);
+    task_create(a, func1);
+    task_create(b, func2);
     yield();
 }

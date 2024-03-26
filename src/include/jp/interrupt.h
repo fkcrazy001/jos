@@ -29,7 +29,7 @@ typedef struct gate {
 #define PIC_INT_VEC_START    0x20
 #define PIC_INT_VEC_END      0x2f
 
-void pic_int_handler(u32 vector, u32 errno);
+void pic_int_handler(u32 vector);
 void pic_int_init(void);
 
 void interrupt_init(void);

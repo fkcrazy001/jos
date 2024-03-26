@@ -4,6 +4,8 @@
 #include <jp/debug.h>
 #include <jp/printk.h>
 #include <jp/joker.h>
+#include <jp/assert.h>
+#include <jp/stdlib.h>
 
 static gate_t idt[IDT_SIZE];
 static pointer_t pidt;
@@ -11,7 +13,12 @@ static pointer_t pidt;
 #define   INTERRUPT_ENTRY_SIZE   0x30
 extern void* handler_entry_table[INTERRUPT_ENTRY_SIZE];
 
-typedef void (*handler_t)(u32 vector, u32 eflags);
+typedef void (*handler_t)(u32 vector,
+                            u32 edi, u32 esi, u32 ebp, u32 esp,
+                            u32 ebx, u32 edx, u32 ecx, u32 eax, //pusha
+                            u32 gs,  u32 fs,  u32 es,  u32 ds, // push seg
+                            u32 vector0, u32 error, // push by macro
+                            u32 eip, u32 cs, u32 eflags); // push by interrupt
 
 handler_t handler_table[INTERRUPT_ENTRY_SIZE];
 
@@ -40,17 +47,28 @@ static char *messages[] = {
     "#CP Control Protection Exception\0",
 };
 
-static void exception_handler(u32 vector, u32 error)
+static void exception_handler(u32 vector,
+                            u32 edi, u32 esi, u32 ebp, u32 esp,
+                            u32 ebx, u32 edx, u32 ecx, u32 eax, //pusha
+                            u32 gs,  u32 fs,  u32 es,  u32 ds, // push seg
+                            u32 vector0, u32 error, // push by macro
+                            u32 eip, u32 cs, u32 eflags)
 {
+    assert(vector0 == vector);
     const char* msg = NULL;
     if (vector < NELE(messages)) {
         msg = messages[vector];
     } else {
         msg = messages[15]; // GP
     }
-    printk("Exception: [0x%02x] %s, error 0x%x", vector, msg, error);
-
-    //while (true); // spin here
+    printk("\n EXCEPTION: %s", msg);
+    printk("\n    VECTOR: 0x%02x", vector);
+    printk("\n     ERROR: 0x%08x", error);
+    printk("\n    EFLAGS: 0x%08x", eflags);
+    printk("\n        CS: 0x%02x", cs);
+    printk("\n       EIP: 0x%08x \n", eip);
+    printk("\n       ESP: 0X%08x \n", esp);
+    hang();
 }
 
 static void idt_init(void)
@@ -76,7 +94,7 @@ static void idt_init(void)
     }
 
     for (i=PIC_INT_VEC_START; i<=PIC_INT_VEC_END; ++i) {
-        handler_table[i]=pic_int_handler;
+        handler_table[i] = pic_int_handler;
     }
     pidt.base = (u32)idt;
     pidt.limit = sizeof(idt) - 1;

@@ -35,10 +35,12 @@ static void send_eoi(int vector)
 
 u32 counter;
 
-void pic_int_handler(u32 vector, u32 errno)
+extern void yield(void);
+void pic_int_handler(u32 vector)
 {
     send_eoi(vector);
-    DEBUGK("func called, counter is %u\n", counter++);
+    //DEBUGK("func called, counter is %u\n", counter++);
+    yield();
 }
 
 void pic_int_init(void)

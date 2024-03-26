@@ -16,9 +16,23 @@ interrupt_handler_%1:
 %endmacro
 
 interrupt_entry:
-    mov eax, [esp]
+    push ds
+    push es
+    push fs
+    push gs
+    pusha
 
+    mov eax, [esp + 12 *4] ; 8 common + 4 segment regiter
+
+    push eax
     call [handler_table + eax * 4]
+    add esp, 4
+
+    popa
+    pop gs
+    pop fs
+    pop es
+    pop ds
     add esp, 8
     iret
 

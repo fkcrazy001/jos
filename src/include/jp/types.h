@@ -9,6 +9,7 @@
 #define  true   1
 #define  false  0
 
+#define _ofp //__attribute__((optimize("omit-frame-pointer")))
 #define  _packed  __attribute__((packed))
 
 typedef  unsigned int  size_t;
