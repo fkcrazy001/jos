@@ -39,8 +39,7 @@ extern void yield(void);
 void pic_int_handler(u32 vector)
 {
     send_eoi(vector);
-    //DEBUGK("func called, counter is %u\n", counter++);
-    yield();
+    DEBUGK("pic default func called, vector is %u, counter is %u\n", vector, counter++);
 }
 
 void pic_int_init(void)
@@ -55,6 +54,6 @@ void pic_int_init(void)
     outb(PIC_S_DATA, 2);          // ICW3: 设置从片连接到主片的 IR2 引脚
     outb(PIC_S_DATA, 0b00000001); // ICW4: 8086模式, 正常EOI
 
-    outb(PIC_M_DATA, 0b11111010); // 关闭所有中断,除了0和2号中断
+    outb(PIC_M_DATA, 0b11111111); // 关闭所有中断,除了0和2号中断
     outb(PIC_S_DATA, 0b11111111); // 关闭所有中断
 }

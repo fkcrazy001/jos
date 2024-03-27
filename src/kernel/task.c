@@ -45,7 +45,7 @@ static _ofp void func1(void)
     asm volatile("sti\n");
     while (1)
     {
-        printk("%s\n",__func__);
+        printk("func1\n");
     }
 }
 
@@ -54,7 +54,7 @@ static _ofp void func2(void)
     asm volatile("sti\n");
     while (1)
     {
-        printk("%s\n",__func__);
+        printk("func2\n");
     }
 }
 
