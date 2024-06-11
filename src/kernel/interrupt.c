@@ -9,17 +9,14 @@
 
 static gate_t idt[IDT_SIZE];
 static pointer_t pidt;
-
 #define   INTERRUPT_ENTRY_SIZE   0x30
 extern void* handler_entry_table[INTERRUPT_ENTRY_SIZE];
-
 typedef void (*handler_t)(u32 vector,
                             u32 edi, u32 esi, u32 ebp, u32 esp,
                             u32 ebx, u32 edx, u32 ecx, u32 eax, //pusha
                             u32 gs,  u32 fs,  u32 es,  u32 ds, // push seg
                             u32 vector0, u32 error, // push by macro
                             u32 eip, u32 cs, u32 eflags); // push by interrupt
-
 handler_t handler_table[INTERRUPT_ENTRY_SIZE];
 
 static char *messages[] = {

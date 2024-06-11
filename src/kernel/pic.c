@@ -4,6 +4,8 @@
 #include <jp/debug.h>
 #include <jp/io.h>
 #include <jp/interrupt.h>
+#include <jp/assert.h>
+#include <jp/debug.h>
 
 // master chip io port
 #define PIC_M_CTRL 0x20
@@ -23,7 +25,9 @@
 #define S_INTS_START   M_INTS_END
 // exclude
 #define S_INTS_END     (PIC_INT_VEC_END + 1)
-static void send_eoi(int vector)
+
+static pic_handler_t pic_table[S_INTS_END - S_INTS_START] = {0};
+static void pic_send_eoi(int vector)
 {
     if (vector >= M_INTS_START && vector < M_INTS_END)
         outb(PIC_M_CTRL, PIC_EOI);
@@ -38,8 +42,13 @@ u32 counter;
 extern void yield(void);
 void pic_int_handler(u32 vector)
 {
-    send_eoi(vector);
-    DEBUGK("pic default func called, vector is %u, counter is %u\n", vector, counter++);
+    pic_send_eoi(vector);
+    u32 irq = vector - M_INTS_START;
+    if (pic_table[irq] == NULL) {
+        DEBUGK("pic default func called, vector is %u, counter is %u\n", vector, counter++);
+    } else {
+        pic_table[irq]();
+    }
 }
 
 void pic_int_init(void)
@@ -56,4 +65,33 @@ void pic_int_init(void)
 
     outb(PIC_M_DATA, 0b11111111); // 关闭所有中断,除了0和2号中断
     outb(PIC_S_DATA, 0b11111111); // 关闭所有中断
+}
+
+void pic_set_interrupt_handler(u32 irq, pic_handler_t handler)
+{
+    
+    assert(irq >= 0 && irq < (PIC_INT_VEC_END - PIC_INT_VEC_START));
+    if (pic_table[irq] != NULL) {
+        panic("same irq %d assigned\n", irq);
+    }
+    pic_table[irq] = handler;
+}
+
+void pic_set_interrupt(u32 irq, bool enable)
+{
+    assert(irq >= 0 && irq < (PIC_INT_VEC_END - PIC_INT_VEC_START));
+    u16 port;
+    u32 n = irq + M_INTS_START;
+    if (n < M_INTS_END) {
+        port = PIC_M_DATA;
+    } else {
+        port = PIC_S_DATA;
+        irq -= 8;
+    }
+
+    if (enable) {
+        outb(port, inb(port) & ~(1<<irq));
+    } else {
+        outb(port, inb(port)|(1<<irq));
+    }
 }
