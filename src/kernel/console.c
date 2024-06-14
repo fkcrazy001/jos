@@ -153,7 +153,7 @@ static void cmd_del(void)
     *(u16*)pos = erase;
     //
 }
-
+extern void start_beep(void);
 void console_write(char* buf, u32 count)
 {
     char ch;
@@ -170,7 +170,7 @@ void console_write(char* buf, u32 count)
         case ESC: // ESC
             break;
         case BEL: // \a
-            /* @todo */
+            start_beep();
             break;
         case BS: // \b
             cmd_bs();
