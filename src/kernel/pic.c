@@ -82,16 +82,28 @@ void pic_set_interrupt(u32 irq, bool enable)
     assert(irq >= 0 && irq < (PIC_INT_VEC_END - PIC_INT_VEC_START));
     u16 port;
     u32 n = irq + M_INTS_START;
+    bool cascade = false; // need to open cascade irq when irq >= 8
     if (n < M_INTS_END) {
         port = PIC_M_DATA;
     } else {
         port = PIC_S_DATA;
         irq -= 8;
+        cascade = true;
     }
 
     if (enable) {
         outb(port, inb(port) & ~(1<<irq));
     } else {
         outb(port, inb(port)|(1<<irq));
+    }
+    if (cascade) {
+        if (enable) {
+            outb(PIC_M_DATA, inb(PIC_M_DATA) & ~(1<<IRQ_CASCADE));
+        } else {
+            u8 all_disable = (inb(PIC_S_DATA) == 0xff);
+            if (all_disable) {
+                outb(PIC_M_DATA, inb(PIC_M_DATA) | (1<<IRQ_CASCADE));
+            }
+        }
     }
 }
