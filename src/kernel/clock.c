@@ -38,11 +38,8 @@ void stop_beep(void)
 
 void clock_handler(void)
 {
-    if (jiffies % 200 == 0) {
-        start_beep();
-    }
     jiffies++;
-    DEBUGK("clock jiffies %d...\n", jiffies);
+    // DEBUGK("clock jiffies %d...\n", jiffies);
     stop_beep();
 }
 

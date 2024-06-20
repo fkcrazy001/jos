@@ -4,7 +4,6 @@
 #include <jp/debug.h>
 #include <jp/stdlib.h>
 #include <jp/time.h>
-
 // 读 cmos 寄存器的值
 u8 cmos_read(u8 addr)
 {
@@ -52,7 +51,7 @@ void set_alarm(u32 secs)
         time.tm_hour %= 24;
     }
 
-    // DEBUGK("hour=%d, min=%d, sec=%d\n", time.tm_hour, time.tm_min, time.tm_sec);
+    DEBUGK("hour=%d, min=%d, sec=%d\n", time.tm_hour, time.tm_min, time.tm_sec);
 
     cmos_write(CMOS_CLOCK_HOUR, bin_to_bcd(time.tm_hour));
     cmos_write(CMOS_CLOCK_MIN, bin_to_bcd(time.tm_min));
@@ -65,9 +64,10 @@ void set_alarm(u32 secs)
 static void rtc_handler(void)
 {
     static u32 cnt = 0;
-    cmos_read(CMOS_C); // read cmos c to enable interrput
-    set_alarm(2);
+    // cmos_read(CMOS_C); // read cmos c to enable interrput
+    // set_alarm(2);
     DEBUGK("rtc handler, cnt=%d...\n", cnt++);
+    start_beep();
 }
 
 void rtc_init(void)
@@ -78,7 +78,7 @@ void rtc_init(void)
     // 设置中断频率
     // outb(CMOS_A, (inb(CMOS_A) & 0xf) | 0b1110); // 500ms
     
-    set_alarm(2);
+    // set_alarm(2);
 
     pic_set_interrupt_handler(IRQ_RTC, rtc_handler);
     pic_set_interrupt(IRQ_RTC, true);

@@ -22,7 +22,6 @@
 #define CMOS_C 0x0c
 #define CMOS_D 0x0d
 #define CMOS_NMI 0x80
-#define CMOS_NMI 0x80
 
 u8 cmos_read(u8 addr);
 void cmos_write(u8 addr, u8 value);

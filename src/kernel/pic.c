@@ -26,7 +26,7 @@
 // exclude
 #define S_INTS_END     (PIC_INT_VEC_END + 1)
 
-static pic_handler_t pic_table[S_INTS_END - S_INTS_START] = {0};
+static pic_handler_t pic_table[S_INTS_END - M_INTS_START] = {0};
 static void pic_send_eoi(int vector)
 {
     if (vector >= M_INTS_START && vector < M_INTS_END)

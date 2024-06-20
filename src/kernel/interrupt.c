@@ -102,6 +102,6 @@ static void idt_init(void)
 
 void interrupt_init(void)
 {
-    pic_int_init();
     idt_init();
+    pic_int_init();
 }

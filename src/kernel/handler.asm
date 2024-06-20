@@ -136,7 +136,7 @@ handler_entry_table:
     dd interrupt_handler_0x25
     dd interrupt_handler_0x26
     dd interrupt_handler_0x27
-    dd interrupt_handler_0x28
+    dd interrupt_handler_0x28 ; rtc interrupt
     dd interrupt_handler_0x29
     dd interrupt_handler_0x2a
     dd interrupt_handler_0x2b
