@@ -6,8 +6,6 @@ dd 0x55aa; 魔数，用于判断错误
 mov si, loading
 call print
 
-; xchg bx, bx; 断点
-
 detect_memory:
     ; 将 ebx 置为 0
     xor ebx, ebx
@@ -109,7 +107,8 @@ protect_mode:
     call read_disk
 
     ;xchg bx, bx
-
+    mov eax, 0x20231129
+    mov ebx, ards_count ; adapt for grub
     jmp dword code_selector:0x10000
     ud2
 
