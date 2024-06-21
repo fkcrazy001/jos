@@ -3,11 +3,15 @@
 #include <jp/joker.h>
 #include <jp/assert.h>
 #include <jp/memory.h>
+#include <jp/stdlib.h>
+#include <jp/string.h>
 
 #define ZONE_VALID 1
 #define ZONE_RESERVED 2
 
 #define IDX(addr) ((u32)addr >> 12) // page idx
+#define PAGE(idx) ((u32)idx << 12)             // 获取页索引 idx 对应的页开始的位置
+#define ASSERT_PAGE(addr) assert((addr & 0xfff) == 0)
 
 typedef struct ards {
     u64 base;
@@ -52,4 +56,68 @@ void mem_init(u32 magic, u32 ards_cnt_p)
     free_pages = IDX(mem_size);
 
     DEBUGK("Total pages %d, Free pages %d\n", total_pages, free_pages);
+}
+
+static u8 *page_info_array;
+static u32 page_info_n; // info array number of pages
+static u32 start_page;
+
+// use first serveral pages to keep in track of page use info
+void mem_map_init(void)
+{
+    page_info_array = (u8 *)mem_base;
+    page_info_n = div_round_up(total_pages, PAGE_SIZE);
+    DEBUGK("Memory map page count %d\n", page_info_n);
+
+    memset(page_info_array, 0, page_info_n * PAGE_SIZE);
+
+    free_pages -= page_info_n;
+    start_page = IDX(mem_base) + page_info_n;
+    for (size_t i = 0; i < start_page; ++i)
+        page_info_array[i] = 1;
+    DEBUGK("Total pages %d, free pages %d\n", total_pages, free_pages);
+}
+
+// alloc one free page
+static u32 get_page(void)
+{
+    if (free_pages == 0) {
+        panic("Out Of Memory!");
+    }
+    for (size_t i = start_page; i < total_pages; i++) {
+        if (!page_info_array[i]) {
+            page_info_array[i] = 1;
+            free_pages--;
+            u32 page = PAGE(i);
+            DEBUGK("Get page 0x%p\n", page);
+            return page;
+        }
+    }
+    panic("can't go to here\n");
+}
+
+static void put_page(u32 addr)
+{
+    ASSERT_PAGE(addr);
+    u32 idx = IDX(addr);
+    assert(idx >= start_page && idx < total_pages);
+    assert(page_info_array[idx] >= 1);
+    page_info_array[idx]--;
+    if (!page_info_array[idx]) {
+        free_pages++;
+    }
+    assert(free_pages > 0 && free_pages < total_pages);
+    DEBUGK("put page 0x%p, ref_cnt %u\n", addr,page_info_array[idx]);
+    
+}
+
+void mem_test(void) 
+{
+    u32 pages[10];
+    for (size_t i = 0; i < 10; ++i) {
+        pages[i] = get_page();
+    }
+    for (size_t i = 0; i < 10; ++i) {
+        put_page(pages[i]);
+    }
 }

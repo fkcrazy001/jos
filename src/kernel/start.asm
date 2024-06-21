@@ -1,5 +1,6 @@
 [bits 32]
 extern console_init
+extern gdt_init
 extern mem_init
 extern kernel_init
 global _start
@@ -9,8 +10,9 @@ _start:
     push ebx ; p ards_counts
     push eax ; magic
     call console_init ; hope stack won't overflow
+    call gdt_init
     call mem_init
-    ; call kernel_init
+    call kernel_init
     ;xchg bx, bx
     jmp $
     

@@ -1,22 +1,21 @@
 #include <jp/types.h>
-extern void console_init();
-extern void gdt_init();
 extern void interrupt_init();
 extern void hang();
-extern void clock_init();
-extern void time_init(void);
-extern void rtc_init(void);
-extern void set_alarm(u32 sec);
+// extern void clock_init();
+// extern void time_init(void);
+// extern void rtc_init(void);
+extern mem_map_init();
+extern mem_test();
 void kernel_init(void)
 {
-    console_init();
-    gdt_init();
     interrupt_init();
+    mem_map_init();
     // task_init();
-    clock_init();
-    time_init();
-    rtc_init();
-    set_alarm(5);
+    // clock_init();
+    // time_init();
+    // rtc_init();
+    mem_test();
+
     asm volatile("sti\n"
                 "movl %eax, %eax\n");
     hang();
