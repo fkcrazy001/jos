@@ -55,7 +55,7 @@ prepare_protected_mode:
     lgdt [gdt_ptr]; 加载 gdt
 
     ; 启动保护模式
-    mov eax, cr0
+    mov eax, cr0 ; cr0的最低位，代表使能保护模式
     or eax, 1
     mov cr0, eax
 

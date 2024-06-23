@@ -111,13 +111,59 @@ static void put_page(u32 addr)
     
 }
 
-void mem_test(void) 
+u32 get_cr3(void)
 {
-    u32 pages[10];
-    for (size_t i = 0; i < 10; ++i) {
-        pages[i] = get_page();
+    asm volatile("movl %cr3, %eax\n");
+}
+
+void set_cr3(u32 pde)
+{
+    ASSERT_PAGE(pde); // must be page
+    asm volatile("movl %%eax, %%cr3\n" ::"a"(pde));
+}
+
+static void enable_page(void)
+{
+    asm volatile(
+        "movl %cr0, %eax\n"
+        "orl  $0x80000000, %eax\n"
+        "movl %eax, %cr0\n");
+}
+
+static void entry_init(page_entry_t *entry, u32 index)
+{
+    assert(index < (1<<20));
+    *(u32*)entry = 0;
+    entry->present = 1;
+    entry->wirte = 1;
+    entry->user = 1;
+    entry->index = index;
+}
+
+#define KERNEL_PAGE_DIR    0x200000
+#define KERNEL_PAGE_ENTRY  0x201000
+
+/// @brief 1. map kernel page dir to 0x200000
+///        2. map kernel mem: 0-4M -> 0->4M
+///        2. open page map
+/// @param  none
+void kernel_mm_init(void)
+{
+    page_entry_t *pde = (page_entry_t*)KERNEL_PAGE_DIR;
+    memset(pde, 0, PAGE_SIZE);
+    BMB;
+
+    entry_init(&pde[0], IDX(KERNEL_PAGE_ENTRY));
+    //reset of page dir not exsit
+
+    page_entry_t *pte = (page_entry_t*)KERNEL_PAGE_ENTRY;
+    
+    for (int i = 0; i < 1024; ++i) {
+        entry_init(&pte[i], i); // map 0->4M to 0->4M
+        page_info_array[i] = 1; // first 1024 * 4k was used by kernel
     }
-    for (size_t i = 0; i < 10; ++i) {
-        put_page(pages[i]);
-    }
+    BMB;
+    set_cr3((u32)pde);
+    BMB;
+    enable_page();
 }
