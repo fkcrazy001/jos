@@ -29,15 +29,15 @@ static void task_create(task_t* task, task_func fn)
 {
     u32 stack = (u32)task + PAGE_SIZE;
     stack -= sizeof(task_frame_t);
-    task_frame_t *tf = stack;
+    task_frame_t *tf = (task_frame_t*)stack;
     tf->ebx = 0x11111111;
     tf->esi = 0x22222222;
     tf->edi = 0x33333333;
-    tf->ebp = task_create; // trace use
+    tf->ebp = (u32)task_create; // trace use
     tf->eip = fn;
     //tf->arg = arg;
 
-    task->stk = stack; // lower down
+    task->stk = (u32*)stack; // lower down
 }
 
 static _ofp void func1(void)

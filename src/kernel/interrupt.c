@@ -91,7 +91,7 @@ static void idt_init(void)
     }
 
     for (i=PIC_INT_VEC_START; i<=PIC_INT_VEC_END; ++i) {
-        handler_table[i] = pic_int_handler;
+        handler_table[i] = (handler_t)pic_int_handler;
     }
     pidt.base = (u32)idt;
     pidt.limit = sizeof(idt) - 1;

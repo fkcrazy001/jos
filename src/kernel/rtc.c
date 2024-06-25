@@ -60,7 +60,7 @@ void set_alarm(u32 secs)
     cmos_write(CMOS_B, 0b00100010); // 打开闹钟中断
     cmos_read(CMOS_C);              // 读 C 寄存器，以允许 CMOS 中断
 }
-
+extern void start_beep(void);
 static void rtc_handler(void)
 {
     static u32 cnt = 0;

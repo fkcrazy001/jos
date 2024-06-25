@@ -10,6 +10,8 @@
 #define ZONE_RESERVED 2
 
 #define IDX(addr) ((u32)addr >> 12) // page idx
+#define DIDX(addr) (((u32)addr >> 22) & 0x3ff) // first 10bits
+#define TIDX(addr) (((u32)addr >> 12) & 0x3ff) // next 10bits
 #define PAGE(idx) ((u32)idx << 12)             // 获取页索引 idx 对应的页开始的位置
 #define ASSERT_PAGE(addr) assert((addr & 0xfff) == 0)
 
@@ -25,6 +27,17 @@ static u32 total_pages = 0;
 static u32 free_pages = 0;
 
 #define used_pages (total_pages - free_pages)
+
+// physical address
+#define KERNEL_PAGE_DIR    0x1000
+static u32 KERNEL_PAGE_TABLE[] = {
+    0x2000,
+    0x3000,
+};
+
+// one page (4k) has 1024 entries, each entry can map a page(4k)
+// thus one page can manage 4M memory
+#define KERNEL_MEMORY_SIZE  (PAGE_SIZE * 1024 * ARRAY_SIZE(KERNEL_PAGE_TABLE))
 
 void mem_init(u32 magic, u32 ards_cnt_p)
 {
@@ -52,6 +65,10 @@ void mem_init(u32 magic, u32 ards_cnt_p)
     assert(mem_base == MEMORY_BASE);
     assert((mem_size & (PAGE_SIZE -1)) == 0);
     
+    if (mem_size < KERNEL_MEMORY_SIZE) {
+        panic("mem too small(0x%p) to boot jos, min(0x%p) needed\n", mem_size, KERNEL_MEMORY_SIZE);
+    }
+
     total_pages = IDX(mem_size) + IDX(mem_base);
     free_pages = IDX(mem_size);
 
@@ -122,7 +139,7 @@ void set_cr3(u32 pde)
     asm volatile("movl %%eax, %%cr3\n" ::"a"(pde));
 }
 
-static void enable_page(void)
+static __always_inline void enable_page(void)
 {
     asm volatile(
         "movl %cr0, %eax\n"
@@ -140,12 +157,9 @@ static void entry_init(page_entry_t *entry, u32 index)
     entry->index = index;
 }
 
-#define KERNEL_PAGE_DIR    0x200000
-#define KERNEL_PAGE_ENTRY  0x201000
-
-/// @brief 1. map kernel page dir to 0x200000
-///        2. map kernel mem: 0-4M -> 0->4M
-///        2. open page map
+/// @brief 1. map kernel mem: 0-8M -> 0->8M
+///        2. map pde[1023] -> pde 
+///        3. open page map
 /// @param  none
 void kernel_mm_init(void)
 {
@@ -153,17 +167,68 @@ void kernel_mm_init(void)
     memset(pde, 0, PAGE_SIZE);
     BMB;
 
-    entry_init(&pde[0], IDX(KERNEL_PAGE_ENTRY));
-    //reset of page dir not exsit
-
-    page_entry_t *pte = (page_entry_t*)KERNEL_PAGE_ENTRY;
-    
-    for (int i = 0; i < 1024; ++i) {
-        entry_init(&pte[i], i); // map 0->4M to 0->4M
-        page_info_array[i] = 1; // first 1024 * 4k was used by kernel
+    int page_idx = 0;
+    for (int i = 0; i < ARRAY_SIZE(KERNEL_PAGE_TABLE); ++i) {
+        page_entry_t *pte = (page_entry_t*)KERNEL_PAGE_TABLE[i];
+        memset(pte, 0, PAGE_SIZE);
+        entry_init(&pde[i], IDX(pte));
+        for (int j = 0; j < 1024; ++j, ++page_idx) {
+            if (!page_idx) // don't map 0-4k to 0-4k, expect null ptr raise pf
+                continue;
+            entry_init(&pte[j], page_idx);
+            page_info_array[page_idx] = 1; //used by kernel
+        }
     }
+
     BMB;
+
+    // 这样的话，0xfffff000就指向pde自己了，坏处是浪费了4M的虚拟地址
+    entry_init(&pde[1023], IDX(pde));
+
     set_cr3((u32)pde);
     BMB;
     enable_page();
+}
+
+static inline page_entry_t* get_pde(void)
+{
+    return (page_entry_t*)0xfffff000;
+}
+
+static inline page_entry_t *get_pte(u32 vaddr)
+{
+    return (page_entry_t*)(0xffc00000 | (DIDX(vaddr) << 12));
+}
+
+static __always_inline void flush_tlb(u32 vaddr) 
+{
+    asm volatile("invlpg (%0)" ::"r"(vaddr):"memory");
+}
+
+void mm_test(void)
+{
+    BMB;
+
+    u32 vaddr = 0x4000000; // 64M
+    u32 paddr = 0x1400000; // 20M physical
+    u32 table = 0x900000; // 9M physical
+
+    page_entry_t *pde = get_pde();
+    
+    // init pde for vaddr
+    entry_init(&pde[DIDX(vaddr)], IDX(table));
+    BMB;
+    // init pte for vaddr
+    page_entry_t *pte = get_pte(vaddr);
+    entry_init(&pte[TIDX(vaddr)], IDX(paddr));
+
+    BMB;
+    char *ptr = (char*)vaddr;
+    ptr[0] = 0x55;
+
+    BMB;
+    entry_init(&pte[TIDX(vaddr)], IDX(0x1500000)); // 21M physical
+    flush_tlb(vaddr);
+    BMB;
+    ptr[0]=0xaa;
 }

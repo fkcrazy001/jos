@@ -11,8 +11,11 @@
 #define  false  0
 #endif
 
-#define _ofp //__attribute__((optimize("omit-frame-pointer")))
+#define _ofp __attribute__((optimize("omit-frame-pointer")))
 #define  _packed  __attribute__((packed))
+#define __always_inline __attribute__((always_inline)) inline
+
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
 typedef  unsigned int  size_t;
 
