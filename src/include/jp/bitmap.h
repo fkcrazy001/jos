@@ -8,6 +8,8 @@ typedef struct bitmap_t
     u32 offset; // 位图开始的偏移
 } bitmap_t;
 
+#define BITLEN (sizeof(u8)*8)
+
 // 初始化位图
 void bitmap_init(bitmap_t *map, char *bits, u32 length, u32 offset);
 

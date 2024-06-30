@@ -5,6 +5,7 @@
 #include <jp/memory.h>
 #include <jp/stdlib.h>
 #include <jp/string.h>
+#include <jp/bitmap.h>
 
 #define ZONE_VALID 1
 #define ZONE_RESERVED 2
@@ -13,7 +14,7 @@
 #define DIDX(addr) (((u32)addr >> 22) & 0x3ff) // first 10bits
 #define TIDX(addr) (((u32)addr >> 12) & 0x3ff) // next 10bits
 #define PAGE(idx) ((u32)idx << 12)             // 获取页索引 idx 对应的页开始的位置
-#define ASSERT_PAGE(addr) assert((addr & 0xfff) == 0)
+#define ASSERT_PAGE(addr) assert(((u32)addr & 0xfff) == 0)
 
 typedef struct ards {
     u64 base;
@@ -34,7 +35,7 @@ static u32 KERNEL_PAGE_TABLE[] = {
     0x2000,
     0x3000,
 };
-
+#define KERNEL_MAP_BITS 0x4000
 // one page (4k) has 1024 entries, each entry can map a page(4k)
 // thus one page can manage 4M memory
 #define KERNEL_MEMORY_SIZE  (PAGE_SIZE * 1024 * ARRAY_SIZE(KERNEL_PAGE_TABLE))
@@ -78,6 +79,7 @@ void mem_init(u32 magic, u32 ards_cnt_p)
 static u8 *page_info_array;
 static u32 page_info_n; // info array number of pages
 static u32 start_page;
+static bitmap_t kernel_map;
 
 // use first serveral pages to keep in track of page use info
 void mem_map_init(void)
@@ -93,6 +95,11 @@ void mem_map_init(void)
     for (size_t i = 0; i < start_page; ++i)
         page_info_array[i] = 1;
     DEBUGK("Total pages %d, free pages %d\n", total_pages, free_pages);
+    // kernel has 0-KERNEL_MEMORY_SIZE memory, managed by bitmap
+    static_assert((IDX(KERNEL_MEMORY_SIZE) - IDX(MEMORY_BASE)) % 8 == 0);
+    static_assert((IDX(KERNEL_MEMORY_SIZE) - IDX(MEMORY_BASE)) <= PAGE_SIZE);
+    bitmap_init(&kernel_map, (char*)KERNEL_MAP_BITS, (IDX(KERNEL_MEMORY_SIZE) - IDX(MEMORY_BASE))/BITLEN, IDX(MEMORY_BASE));
+    bitmap_scan(&kernel_map, page_info_n);
 }
 
 // alloc one free page
@@ -179,14 +186,10 @@ void kernel_mm_init(void)
             page_info_array[page_idx] = 1; //used by kernel
         }
     }
-
-    BMB;
-
     // 这样的话，0xfffff000就指向pde自己了，坏处是浪费了4M的虚拟地址
     entry_init(&pde[1023], IDX(pde));
 
     set_cr3((u32)pde);
-    BMB;
     enable_page();
 }
 
@@ -205,30 +208,49 @@ static __always_inline void flush_tlb(u32 vaddr)
     asm volatile("invlpg (%0)" ::"r"(vaddr):"memory");
 }
 
+static u32 scan_page(bitmap_t *map, u32 count)
+{
+    u32 idx = bitmap_scan(map, count);
+    if (idx == EOF) {
+        panic("no free pages when trying fetch %d pages\n", count);
+    }
+    return PAGE(idx);
+}
+
+static void reset_page(bitmap_t *map, void* vaddr, u32 count)
+{
+    u32 idx=IDX(vaddr);
+    for(u32 i=0;i<count;i++) {
+        assert(bitmap_test(map, i+idx));
+        bitmap_set(map, idx+i, 0);
+    }
+}
+
+u32 alloc_kpage(u32 count)
+{
+    assert(count>0);
+    u32 vaddr = scan_page(&kernel_map, count);
+    DEBUGK("ALLOC kernel pages start from 0x%p, count %d\n", vaddr, count);
+    return vaddr;
+}
+
+u32 free_kpage(u32 addr, u32 count)
+{
+    ASSERT_PAGE(addr);
+    assert(count>0);
+    reset_page(&kernel_map, addr, count);
+    DEBUGK("FREE kernel pages start from 0x%p, count %d\n", addr, count);
+}
+
 void mm_test(void)
 {
-    BMB;
-
-    u32 vaddr = 0x4000000; // 64M
-    u32 paddr = 0x1400000; // 20M physical
-    u32 table = 0x900000; // 9M physical
-
-    page_entry_t *pde = get_pde();
-    
-    // init pde for vaddr
-    entry_init(&pde[DIDX(vaddr)], IDX(table));
-    BMB;
-    // init pte for vaddr
-    page_entry_t *pte = get_pte(vaddr);
-    entry_init(&pte[TIDX(vaddr)], IDX(paddr));
-
-    BMB;
-    char *ptr = (char*)vaddr;
-    ptr[0] = 0x55;
-
-    BMB;
-    entry_init(&pte[TIDX(vaddr)], IDX(0x1500000)); // 21M physical
-    flush_tlb(vaddr);
-    BMB;
-    ptr[0]=0xaa;
+    u32 *pages = (u32 *)0x200000;
+    u32 count = 0x6fe;
+    for (int i=0; i<count; ++i) {
+        pages[i]=alloc_kpage(1);
+        DEBUGK("0x%x\n", pages[i]);
+    }
+    for (int i=0;i<count;++i) {
+        free_kpage(pages[i], 1);
+    }
 }

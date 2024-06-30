@@ -6,7 +6,7 @@ extern void hang();
 // extern void rtc_init(void);
 extern void mem_map_init();
 extern void kernel_mm_init(void);
-// extern void mm_test(void);
+extern void mm_test(void);
 extern void bitmap_tests(void);
 void kernel_init(void)
 {
@@ -17,9 +17,7 @@ void kernel_init(void)
     // clock_init();
     // time_init();
     // rtc_init();
-    // mm_test();
-
-    bitmap_tests();
+    mm_test();
 
     asm volatile("sti\n"
                 "movl %eax, %eax\n");
