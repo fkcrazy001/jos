@@ -53,6 +53,11 @@ void pic_int_init(void);
 
 void interrupt_init(void);
 
+// disable interrupt and return pre IF
+bool interrupt_disable(void);
+bool get_interrupt_state(void);
+void set_interrupt_state(bool state);
+
 void pic_set_interrupt(u32 irq, bool enable);
 void pic_set_interrupt_handler(u32 irq, pic_handler_t handler);
 #endif

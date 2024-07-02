@@ -105,3 +105,28 @@ void interrupt_init(void)
     idt_init();
     pic_int_init();
 }
+
+bool interrupt_disable(void)
+{
+    asm volatile(
+        "pushfl\n"
+        "cli\n"
+        "popl %eax\n"
+        "shrl $9, %eax\n"
+        "andl $1, %eax\n");
+}
+bool get_interrupt_state(void)
+{
+    asm volatile(
+        "pushfl\n"
+        "popl %eax\n"
+        "shrl $9, %eax\n"
+        "andl $1, %eax\n");
+}
+void set_interrupt_state(bool state)
+{
+    if (state)
+        asm volatile("sti\n");
+    else
+        asm volatile("cli\n");
+}

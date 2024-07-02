@@ -217,7 +217,7 @@ static u32 scan_page(bitmap_t *map, u32 count)
     return PAGE(idx);
 }
 
-static void reset_page(bitmap_t *map, void* vaddr, u32 count)
+static void reset_page(bitmap_t *map, u32 vaddr, u32 count)
 {
     u32 idx=IDX(vaddr);
     for(u32 i=0;i<count;i++) {
@@ -240,17 +240,4 @@ u32 free_kpage(u32 addr, u32 count)
     assert(count>0);
     reset_page(&kernel_map, addr, count);
     DEBUGK("FREE kernel pages start from 0x%p, count %d\n", addr, count);
-}
-
-void mm_test(void)
-{
-    u32 *pages = (u32 *)0x200000;
-    u32 count = 0x6fe;
-    for (int i=0; i<count; ++i) {
-        pages[i]=alloc_kpage(1);
-        DEBUGK("0x%x\n", pages[i]);
-    }
-    for (int i=0;i<count;++i) {
-        free_kpage(pages[i], 1);
-    }
 }

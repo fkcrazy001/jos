@@ -1,13 +1,16 @@
 #include <jp/types.h>
+#include <jp/debug.h>
 extern void interrupt_init();
 extern void hang();
+// extern void task_init();
 // extern void clock_init();
 // extern void time_init(void);
 // extern void rtc_init(void);
 extern void mem_map_init();
 extern void kernel_mm_init(void);
-extern void mm_test(void);
-extern void bitmap_tests(void);
+extern bool interrupt_disable(void);
+extern bool get_interrupt_state(void);
+extern void set_interrupt_state(bool state);
 void kernel_init(void)
 {
     interrupt_init();
@@ -17,9 +20,11 @@ void kernel_init(void)
     // clock_init();
     // time_init();
     // rtc_init();
-    mm_test();
+    bool state = interrupt_disable();
 
-    asm volatile("sti\n"
-                "movl %eax, %eax\n");
+    DEBUGK("disable interrupt, pre %d, now %d\n", state, get_interrupt_state());
+    set_interrupt_state(true);
+    DEBUGK("enable interrupt, now %d\n", get_interrupt_state());
+
     hang();
 }
