@@ -25,6 +25,19 @@ void yield(void)
     task_switch(nxt);
 }
 
+
+/***
+ * 4k: task_frame
+ *    eip
+ *    ebp
+ *    ebx
+ *    esi
+ *    edi
+ *    ...
+ *    ...
+ *    stack(esp)
+ * 0: pcb 
+ */
 static void task_create(task_t* task, task_func fn)
 {
     u32 stack = (u32)task + PAGE_SIZE;

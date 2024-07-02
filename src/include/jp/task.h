@@ -2,8 +2,32 @@
 #define __TASK_H__
 #include <jp/types.h>
 
+#define KERNEL_USER 0
+#define NORMAL_USER 1
+
+#define TASK_NAME_LEN 16
+
+typedef enum task_state {
+    TASK_INIT,
+    TASK_RUNNING,
+    TASK_READY,
+    TASK_BLOCKED,
+    TASK_SLEEP,
+    TASK_WAITING,
+    TASK_DIED,
+} task_state_e;
+
 typedef struct task {
     u32 *stk;
+    task_state_e state;
+    u32 priority;
+    u32 ticks;
+    u32 jiffies;
+    u8  name[TASK_NAME_LEN];
+    u32 uid;
+    u32 pde;  // page dir entry
+    struct bitmap_t *vmap;//
+    u32 magic;
 } task_t;
 
 typedef void (*task_func)(void);

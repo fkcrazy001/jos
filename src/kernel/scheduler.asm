@@ -7,9 +7,9 @@ task_switch:
     push ebp
     mov ebp, esp
     ; 通用寄存器保存
-    push edi;
-    push esi;
     push ebx;
+    push esi;
+    push edi;
 
     ; 保存当前程序的栈地址
     ; current
@@ -24,9 +24,9 @@ task_switch:
     ; esp = next->stk; stk == next
     mov esp, [eax]
     ; 恢复通用栈
-    pop ebx
-    pop esi
     pop edi
+    pop esi
+    pop edx
     pop ebp
 
     ret
