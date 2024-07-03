@@ -79,7 +79,7 @@ void mem_init(u32 magic, u32 ards_cnt_p)
 static u8 *page_info_array;
 static u32 page_info_n; // info array number of pages
 static u32 start_page;
-static bitmap_t kernel_map;
+bitmap_t kernel_map;
 
 // use first serveral pages to keep in track of page use info
 void mem_map_init(void)

@@ -53,7 +53,7 @@ static void exception_handler(u32 vector,
 {
     assert(vector0 == vector);
     const char* msg = NULL;
-    if (vector < NELE(messages)) {
+    if (vector < ARRAY_SIZE(messages)) {
         msg = messages[vector];
     } else {
         msg = messages[15]; // GP

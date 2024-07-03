@@ -42,6 +42,15 @@ typedef struct task_frame {
     //void *arg; // arg = $esp + 4
 } task_frame_t;
 
-void task_init(void);
+void schedule(void);
+
+static inline task_t *running_task(void)
+{
+    asm volatile (
+        "movl %esp, %eax\n"
+        "andl $0xfffff000, %eax\n");
+}
+
+#define current running_task()
 
 #endif

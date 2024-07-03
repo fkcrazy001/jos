@@ -98,7 +98,7 @@ protect_mode:
 
     mov byte [0xb8000], 'P'
 
-    mov esp, 0x10000
+    mov esp, 0x10000 ;栈顶在这儿
 
     mov edi, 0x10000; 读取的目标内存
     mov ecx, 10; 起始扇区

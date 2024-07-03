@@ -2,6 +2,8 @@
 #include <jp/interrupt.h>
 #include <jp/assert.h>
 #include <jp/debug.h>
+#include <jp/task.h>
+#include <jp/joker.h>
 
 #define PIT_CHAN0_REG 0X40
 #define PIT_CHAN2_REG 0X42
@@ -41,6 +43,15 @@ void clock_handler(void)
     jiffies++;
     // DEBUGK("clock jiffies %d...\n", jiffies);
     stop_beep();
+    // avoid stack overflow
+    task_t *task = current;
+    assert(task->magic == J_MAGIC);
+
+    task->jiffies = jiffies;
+    if (--task->ticks <= 0) {
+        task->ticks = task->priority;
+        schedule();
+    }
 }
 
 void pit_init(void)

@@ -1,30 +1,67 @@
 #include <jp/task.h>
-#include <jp/task.h>
 #include <jp/printk.h>
 #include <jp/debug.h>
+#include <jp/memory.h>
+#include <jp/assert.h>
+#include <jp/interrupt.h>
+#include <jp/string.h>
+#include <jp/bitmap.h>
+#include <jp/joker.h>
 
-#define PAGE_SIZE 0x1000
-
-task_t* a = (task_t*)0x1000;
-task_t* b = (task_t*)0x2000;
+extern bitmap_t kernel_map;
 
 extern void task_switch(task_t *tsk);
 
-task_t *running_task(void)
+#define NR_TASKS 64
+static task_t *task_table[NR_TASKS];
+
+static task_t* get_free_task(void)
 {
-    asm volatile (
-        "movl %esp, %eax\n"
-        "andl $0xfffff000, %eax\n");
+    for (int i=0; i<NR_TASKS; ++i) {
+        if (task_table[i] == NULL) {
+            // @todo free_kpage
+            task_table[i] = (task_t*)alloc_kpage(1);
+            return task_table[i];
+        }
+    }
+    panic("can't create more jobs");
 }
 
-#define current running_task()
-
-void yield(void)
+/// @brief 找到除了自己之外的优先级最高的（tick最大的，或者jiffies最小的，一种调度算法吧）
+///        call me in interrupt disable state
+/// @param state target state
+/// @return task_
+static task_t* task_search(task_state_e state)
 {
-    task_t *nxt = (current == a) ? b:a;
-    task_switch(nxt);
+    assert(!get_interrupt_state());
+    task_t *task = NULL;
+    task_t *tmp = NULL;
+    task_t *now = current;
+    for (int i=0;i<NR_TASKS;++i) {
+        tmp = task_table[i];
+        if (tmp == NULL || tmp == now)
+            continue;
+        if (tmp->state != state)
+            continue;
+        if (!task || task->ticks < tmp->ticks || task->jiffies > tmp->jiffies)
+            task = tmp;
+    }
+    return task;
 }
 
+void schedule(void)
+{
+    task_t *now = current;
+    task_t *next = task_search(TASK_READY);
+    if (next == NULL)
+        return;
+    assert(next != NULL);
+    assert(next->magic == J_MAGIC);
+    if (now->state == TASK_RUNNING)
+        now->state = TASK_READY;
+    next->state = TASK_RUNNING;
+    task_switch(next);
+}
 
 /***
  * 4k: task_frame
@@ -38,42 +75,74 @@ void yield(void)
  *    stack(esp)
  * 0: pcb 
  */
-static void task_create(task_t* task, task_func fn)
+static task_t* task_create(task_func fn,  const char* name, u32 priority, u32 uid)
 {
+    task_t *task = get_free_task();
+    memset(task, 0, PAGE_SIZE);
     u32 stack = (u32)task + PAGE_SIZE;
     stack -= sizeof(task_frame_t);
     task_frame_t *tf = (task_frame_t*)stack;
     tf->ebx = 0x11111111;
     tf->esi = 0x22222222;
     tf->edi = 0x33333333;
-    tf->ebp = (u32)task_create; // trace use
+    tf->ebp = 0; // trace use
     tf->eip = fn;
     //tf->arg = arg;
 
+    task->magic = J_MAGIC;
+    strncpy(task->name, name, sizeof(task->name));
     task->stk = (u32*)stack; // lower down
+    task->priority = priority;
+    task->ticks = priority;
+    task->jiffies = 0;
+    task->state = TASK_READY;
+    task->uid = uid;
+    task->vmap = &kernel_map;
+    return task;
 }
 
-static _ofp void func1(void)
+static void task_setup()
 {
-    asm volatile("sti\n");
-    while (1)
-    {
-        printk("func1\n");
-    }
+    task_t *t = current;
+    t->magic = J_MAGIC;
+    t->ticks = 1; // this task never come back
+    memset(task_table, 0, sizeof(task_table));
 }
 
-static _ofp void func2(void)
+void thread_a(void)
 {
-    asm volatile("sti\n");
-    while (1)
+    set_interrupt_state(true);
+    while (true)
     {
-        printk("func2\n");
+        printk("A");
     }
+    
+}
+
+void thread_b(void)
+{
+    set_interrupt_state(true);
+    while (true)
+    {
+        printk("B");
+    }
+    
+}
+
+void thread_c(void)
+{
+    set_interrupt_state(true);
+    while (true)
+    {
+        printk("C");
+    }
+    
 }
 
 void task_init(void)
 {
-    task_create(a, func1);
-    task_create(b, func2);
-    yield();
+    task_setup();
+    task_create(thread_a, "a", 5, KERNEL_USER);
+    task_create(thread_b, "b", 5, KERNEL_USER);
+    task_create(thread_c, "c", 5, KERNEL_USER);
 }
