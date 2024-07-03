@@ -109,6 +109,14 @@ static void task_setup()
     memset(task_table, 0, sizeof(task_table));
 }
 
+/// stk back trace
+// 0. interrupt handler
+// 1. pit handler: clock handler
+// 2. schedule_parta: push current task ROP in stk
+// 2.5 schedule_partb task stack switch
+// 3. schedule_partc: pop next task's ROP
+// 4. iret from interrupt handler
+// 5. finally thread_a
 void thread_a(void)
 {
     set_interrupt_state(true);
