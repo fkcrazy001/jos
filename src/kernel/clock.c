@@ -44,14 +44,7 @@ void clock_handler(void)
     // DEBUGK("clock jiffies %d...\n", jiffies);
     stop_beep();
     // avoid stack overflow
-    task_t *task = current;
-    assert(task->magic == J_MAGIC);
-
-    task->jiffies = jiffies;
-    if (--task->ticks <= 0) {
-        task->ticks = task->priority;
-        schedule();
-    }
+    schedule();
 }
 
 void pit_init(void)

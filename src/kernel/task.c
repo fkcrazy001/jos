@@ -7,6 +7,7 @@
 #include <jp/string.h>
 #include <jp/bitmap.h>
 #include <jp/joker.h>
+#include <jp/clock.h>
 
 extern bitmap_t kernel_map;
 
@@ -52,6 +53,13 @@ static task_t* task_search(task_state_e state)
 void schedule(void)
 {
     task_t *now = current;
+    assert(now->magic == J_MAGIC);
+
+    now->jiffies = jiffies;
+    if (--now->ticks > 0) {
+        return;
+    }
+    now->ticks = now->priority;
     task_t *next = task_search(TASK_READY);
     if (next == NULL)
         return;

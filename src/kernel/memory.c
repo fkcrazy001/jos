@@ -172,7 +172,7 @@ void kernel_mm_init(void)
 {
     page_entry_t *pde = (page_entry_t*)KERNEL_PAGE_DIR;
     memset(pde, 0, PAGE_SIZE);
-    BMB;
+    // BMB;
 
     int page_idx = 0;
     for (int i = 0; i < ARRAY_SIZE(KERNEL_PAGE_TABLE); ++i) {
