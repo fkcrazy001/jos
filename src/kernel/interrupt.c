@@ -11,6 +11,7 @@ static gate_t idt[IDT_SIZE];
 static pointer_t pidt;
 #define   INTERRUPT_ENTRY_SIZE   0x30
 extern void* handler_entry_table[INTERRUPT_ENTRY_SIZE];
+extern void syscall_handler();
 typedef void (*handler_t)(u32 vector,
                             u32 edi, u32 esi, u32 ebp, u32 esp,
                             u32 ebx, u32 edx, u32 ecx, u32 eax, //pusha
@@ -71,8 +72,9 @@ static void exception_handler(u32 vector,
 static void idt_init(void)
 {
     int i = 0;
+    gate_t *ig;
     for ( i = 0; i < INTERRUPT_ENTRY_SIZE; ++i) {
-        gate_t *ig = &idt[i];
+        ig = &idt[i];
         void* hfunc = handler_entry_table[i];
         memset(ig, 0, sizeof(*ig));
         ig->cs = KERNEL_CS;
@@ -93,9 +95,24 @@ static void idt_init(void)
     for (i=PIC_INT_VEC_START; i<=PIC_INT_VEC_END; ++i) {
         handler_table[i] = (handler_t)pic_int_handler;
     }
+
+    {
+        ig = &idt[SYSCALL_GATE];
+        void* hfunc = syscall_handler;
+        memset(ig, 0, sizeof(*ig));
+        ig->cs = KERNEL_CS;
+        ig->dpl = 3; // both kernel and user can access
+        ig->offset0 = (u32)hfunc & 0xffff;
+        ig->offset1 = ((u32)hfunc >> 16) & 0xffff;
+        ig->segment = SEG_SYSTEM;
+        ig->type = INTERRUPT_GATE;
+        ig->present = 1; 
+    }
+
+
     pidt.base = (u32)idt;
     pidt.limit = sizeof(idt) - 1;
-    //BMB;
+    BMB;
 
     asm volatile("lidt pidt\n");
 }

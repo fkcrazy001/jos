@@ -26,8 +26,9 @@ interrupt_entry:
 
     push eax
     call [handler_table + eax * 4]
+global interrupt_exit
+interrupt_exit:
     add esp, 4
-
     popa
     pop gs
     pop fs
@@ -144,3 +145,37 @@ handler_entry_table:
     dd interrupt_handler_0x2d
     dd interrupt_handler_0x2e
     dd interrupt_handler_0x2f
+
+
+section .text
+
+extern syscall_check
+extern syscall_table
+global syscall_handler
+syscall_handler:
+    push eax
+    call syscall_check ;panic here if fail
+    add esp, 4
+
+    push 0x20240226 ; magic error
+    push 0x80 ; vector0
+
+    push ds
+    push es
+    push fs
+    push gs
+    pusha
+
+    push 0x80 ; vector
+
+    push edx ; 第3个参数
+    push ecx ; param2
+    push ebx ; param 1
+
+    call [syscall_table + eax * 4]
+
+    add esp, 12
+
+    mov dword [esp + 8 * 4], eax
+
+    jmp interrupt_exit

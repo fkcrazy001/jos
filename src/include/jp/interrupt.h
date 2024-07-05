@@ -28,6 +28,8 @@ typedef struct gate {
 
 #define IDT_SIZE 256
 
+#define SYSCALL_GATE 0x80
+
 #define PIC_INT_VEC_START    0x20
 #define PIC_INT_VEC_END      0x2f
 
