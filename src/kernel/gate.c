@@ -1,6 +1,7 @@
 #include <jp/types.h>
 #include <jp/debug.h>
 #include <jp/assert.h>
+#include <jp/syscall.h>
 
 #define SYSCALL_SIZE 64
 // args above p3 is common args pushed by syscall_handler
@@ -26,10 +27,13 @@ static u32 sys_test(u32 param1, u32 param2, u32 param3)
     return 255;
 }
 
+extern void task_yield(void);
+
 void syscall_init(void)
 {
     for (int i=0;i<SYSCALL_SIZE;++i) {
         syscall_table[i] = (syscall_t)sys_default;
     }
-    syscall_table[0] = sys_test;
+    syscall_table[SYS_NR_TEST] = sys_test;
+    syscall_table[SYS_NR_YIELD] = (syscall_t)task_yield;
 }

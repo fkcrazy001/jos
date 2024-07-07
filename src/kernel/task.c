@@ -50,6 +50,21 @@ static task_t* task_search(task_state_e state)
     return task;
 }
 
+static inline void do_schedule(void)
+{
+    assert(!get_interrupt_state());
+    task_t *now = current;
+    task_t *next = task_search(TASK_READY);
+    if (next == NULL)
+        return;
+    assert(next != NULL);
+    assert(next->magic == J_MAGIC);
+    if (now->state == TASK_RUNNING)
+        now->state = TASK_READY;
+    next->state = TASK_RUNNING;
+    task_switch(next);
+}
+
 void schedule(void)
 {
     task_t *now = current;
@@ -60,15 +75,12 @@ void schedule(void)
         return;
     }
     now->ticks = now->priority;
-    task_t *next = task_search(TASK_READY);
-    if (next == NULL)
-        return;
-    assert(next != NULL);
-    assert(next->magic == J_MAGIC);
-    if (now->state == TASK_RUNNING)
-        now->state = TASK_READY;
-    next->state = TASK_RUNNING;
-    task_switch(next);
+    do_schedule();
+}
+
+void task_yield(void)
+{
+    do_schedule();
 }
 
 /***
@@ -131,6 +143,7 @@ void thread_a(void)
     while (true)
     {
         printk("A");
+        yield();
     }
     
 }
@@ -141,6 +154,7 @@ void thread_b(void)
     while (true)
     {
         printk("B");
+        yield();
     }
     
 }
@@ -151,6 +165,7 @@ void thread_c(void)
     while (true)
     {
         printk("C");
+        yield();
     }
     
 }

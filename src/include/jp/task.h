@@ -53,4 +53,6 @@ static inline task_t *running_task(void)
 
 #define current running_task()
 
+extern void task_yield(void);
+
 #endif

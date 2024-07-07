@@ -22,15 +22,5 @@ void kernel_init(void)
     clock_init();
     task_init();
     syscall_init();
-
-    asm volatile("movl $0, %eax\n"
-                "movl $1, %ebx\n"
-                "movl $2, %ecx\n"
-                "movl $3, %edx\n"
-                "int $0x80\n"
-                "movl $1, %eax\n"
-                "int $0x80\n"
-                "movl $256, %eax\n"
-                "int $0x80\n");
-    // set_interrupt_state(true);
+    set_interrupt_state(true);
 }
