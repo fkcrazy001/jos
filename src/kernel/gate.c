@@ -34,6 +34,6 @@ void syscall_init(void)
     for (int i=0;i<SYSCALL_SIZE;++i) {
         syscall_table[i] = (syscall_t)sys_default;
     }
-    syscall_table[SYS_NR_TEST] = sys_test;
+    syscall_table[SYS_NR_TEST] = (syscall_t)sys_test;
     syscall_table[SYS_NR_YIELD] = (syscall_t)task_yield;
 }

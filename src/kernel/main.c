@@ -12,6 +12,7 @@ extern bool interrupt_disable(void);
 extern bool get_interrupt_state(void);
 extern void set_interrupt_state(bool state);
 extern void syscall_init(void);
+extern void list_test(void);
 void kernel_init(void)
 {
     interrupt_init();
@@ -22,5 +23,7 @@ void kernel_init(void)
     clock_init();
     task_init();
     syscall_init();
-    set_interrupt_state(true);
+
+    list_test();
+    // set_interrupt_state(true);
 }
