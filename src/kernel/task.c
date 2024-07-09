@@ -16,6 +16,7 @@ extern void task_switch(task_t *tsk);
 #define NR_TASKS 64
 static task_t *task_table[NR_TASKS];
 static list_node_t default_block_list=LIST_INIT(&default_block_list);
+static task_t *idle_task;
 static task_t* get_free_task(void)
 {
     for (int i=0; i<NR_TASKS; ++i) {
@@ -47,6 +48,8 @@ static task_t* task_search(task_state_e state)
         if (!task || task->ticks < tmp->ticks || task->jiffies > tmp->jiffies)
             task = tmp;
     }
+    if (!task && state == TASK_READY)
+        task = idle_task;
     return task;
 }
 
@@ -164,43 +167,23 @@ static void task_setup()
 // 3. schedule_partc: pop next task's ROP
 // 4. iret from interrupt handler
 // 5. finally thread_a
-void thread_a(void)
-{
-    set_interrupt_state(true);
-    while (true)
-    {
-        printk("A");
-        test();
-    }
+// void thread_a(void)
+// {
+//     set_interrupt_state(true);
+//     while (true)
+//     {
+//         printk("A");
+//         test();
+//     }
     
-}
+// }
 
-void thread_b(void)
-{
-    set_interrupt_state(true);
-    while (true)
-    {
-        printk("B");
-        test();
-    }
-    
-}
-
-void thread_c(void)
-{
-    set_interrupt_state(true);
-    while (true)
-    {
-        printk("C");
-        test();
-    }
-    
-}
+extern void idle_thread(void);
+extern void init_thread(void);
 
 void task_init(void)
 {
     task_setup();
-    task_create(thread_a, "a", 5, KERNEL_USER);
-    task_create(thread_b, "b", 5, KERNEL_USER);
-    // task_create(thread_c, "c", 5, KERNEL_USER);
+    idle_task = task_create(idle_thread, "idle", 1, KERNEL_USER); // lowest priority
+    assert(task_create(init_thread, "initd", 5, NORMAL_USER));
 }
