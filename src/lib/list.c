@@ -3,7 +3,7 @@
 #include <jp/debug.h>
 void list_test(void)
 {
-    list_node_t head = LIST_INIT(head);
+    list_node_t head = LIST_INIT(&head);
     u32 count=3;
     list_node_t *node;
 
@@ -38,7 +38,7 @@ void list_test(void)
         int a;
     } node2 = {
         .a = 0x55aa55aa,
-        .node = LIST_INIT(node2.node),
+        .node = LIST_INIT(&node2.node),
     };
     list_tail_add(&head, &node2.node);
 

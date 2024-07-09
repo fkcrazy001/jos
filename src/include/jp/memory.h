@@ -3,6 +3,8 @@
 #define PAGE_SIZE (1<<12)
 #define MEMORY_BASE (0x100000) // 1M 可用内存开始的地方
 
+#define KERNEL_PAGE_DIR    0x1000
+
 typedef struct page_entry {
     u32 present:1; // in mem
     u32 wirte:1; // 0:r, 1:rw

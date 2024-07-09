@@ -30,7 +30,6 @@ static u32 free_pages = 0;
 #define used_pages (total_pages - free_pages)
 
 // physical address
-#define KERNEL_PAGE_DIR    0x1000
 static u32 KERNEL_PAGE_TABLE[] = {
     0x2000,
     0x3000,

@@ -2,6 +2,7 @@
 #include <jp/debug.h>
 #include <jp/assert.h>
 #include <jp/syscall.h>
+#include <jp/task.h>
 
 #define SYSCALL_SIZE 64
 // args above p3 is common args pushed by syscall_handler
@@ -21,9 +22,17 @@ static u32 sys_default(void)
     return 0;
 }
 
-static u32 sys_test(u32 param1, u32 param2, u32 param3)
+static task_t *task = NULL;
+
+static u32 sys_test(void)
 {
-    DEBUGK("syscall test... p1 = %d, p2=%d, p3=%d\n", param1, param2, param3);
+    if (!task) {
+        task = current;
+        task_block(task, NULL, TASK_BLOCKED);
+    } else {
+        task_unblock(task);
+        task = NULL;
+    }
     return 255;
 }
 

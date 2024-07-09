@@ -14,13 +14,17 @@ typedef struct list_node {
 } list_node_t;
 
 #define LIST_INIT(head) (list_node_t){ \
-    .prev = &head, \
-    .next = &head, \
+    (head), (head) \
 }
 
-static inline void list_init(list_node_t *head)
+static inline void node_init(list_node_t *node)
 {
-    head->next = head->prev = head;
+    node->next = node->prev = NULL;
+}
+
+static inline bool node_is_init(list_node_t *node)
+{
+    return (!node->next) && (!node->prev);
 }
 
 static bool list_empty(list_node_t *head)
@@ -62,7 +66,7 @@ static inline void list_del(list_node_t *node)
     assert(node != node->next);
     node->prev->next = node->next;
     node->next->prev = node->prev;
-    list_init(node);
+    node_init(node);
 }
 
 

@@ -15,7 +15,7 @@ extern void task_switch(task_t *tsk);
 
 #define NR_TASKS 64
 static task_t *task_table[NR_TASKS];
-
+static list_node_t default_block_list=LIST_INIT(&default_block_list);
 static task_t* get_free_task(void)
 {
     for (int i=0; i<NR_TASKS; ++i) {
@@ -50,19 +50,44 @@ static task_t* task_search(task_state_e state)
     return task;
 }
 
+/// @brief when calling this func, @current will be blocked on no cases
+///        if no ready task is found, will cause an assert failure
+/// @param  
 static inline void do_schedule(void)
 {
     assert(!get_interrupt_state());
     task_t *now = current;
     task_t *next = task_search(TASK_READY);
-    if (next == NULL)
-        return;
+    // if (next == NULL)
+    //     return;
     assert(next != NULL);
     assert(next->magic == J_MAGIC);
     if (now->state == TASK_RUNNING)
         now->state = TASK_READY;
     next->state = TASK_RUNNING;
     task_switch(next);
+}
+
+void task_block(task_t *task, list_node_t *blist, task_state_e state)
+{
+    assert(!get_interrupt_state()); // in disable state
+    assert(node_is_init(&task->blk_node));
+    
+    if (blist == NULL) {
+        blist = &default_block_list;
+    }
+    list_add(blist, &task->blk_node);
+    assert(state!=TASK_RUNNING && state!=TASK_DIED && state != TASK_READY);
+    task->state = state;
+    if (current == task)
+        do_schedule();
+}
+void task_unblock(task_t *task)
+{
+    assert(!get_interrupt_state()); // in disable state
+    list_del(&task->blk_node);
+    assert(node_is_init(&task->blk_node));
+    task->state = TASK_READY;
 }
 
 void schedule(void)
@@ -116,8 +141,10 @@ static task_t* task_create(task_func fn,  const char* name, u32 priority, u32 ui
     task->ticks = priority;
     task->jiffies = 0;
     task->state = TASK_READY;
+    task->pde = KERNEL_PAGE_DIR;
     task->uid = uid;
     task->vmap = &kernel_map;
+    node_init(&task->blk_node);
     return task;
 }
 
@@ -143,7 +170,7 @@ void thread_a(void)
     while (true)
     {
         printk("A");
-        yield();
+        test();
     }
     
 }
@@ -154,7 +181,7 @@ void thread_b(void)
     while (true)
     {
         printk("B");
-        yield();
+        test();
     }
     
 }
@@ -165,7 +192,7 @@ void thread_c(void)
     while (true)
     {
         printk("C");
-        yield();
+        test();
     }
     
 }
@@ -175,5 +202,5 @@ void task_init(void)
     task_setup();
     task_create(thread_a, "a", 5, KERNEL_USER);
     task_create(thread_b, "b", 5, KERNEL_USER);
-    task_create(thread_c, "c", 5, KERNEL_USER);
+    // task_create(thread_c, "c", 5, KERNEL_USER);
 }

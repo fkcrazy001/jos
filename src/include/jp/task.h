@@ -1,6 +1,7 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 #include <jp/types.h>
+#include <jp/list.h>
 
 #define KERNEL_USER 0
 #define NORMAL_USER 1
@@ -19,6 +20,7 @@ typedef enum task_state {
 
 typedef struct task {
     u32 *stk;
+    list_node_t  blk_node;
     task_state_e state;
     u32 priority;
     u32 ticks;
@@ -54,5 +56,6 @@ static inline task_t *running_task(void)
 #define current running_task()
 
 extern void task_yield(void);
-
+extern void task_block(task_t *task, list_node_t *blist, task_state_e state);
+extern void task_unblock(task_t *task);
 #endif
