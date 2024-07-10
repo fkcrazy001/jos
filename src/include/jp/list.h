@@ -6,7 +6,14 @@
 #define member_offset(type, member) ((u32)&(((type*)0)->member))
 #define container_of(type, member, ptr) (type *)((u32)(ptr)-member_offset(type, member))
 
-#define list_for_each(iter, head, member) for(iter=container_of(typeof(*iter), member, (head)->next); &((iter)->member) !=(head);iter=container_of(typeof(*iter), member, (iter)->member.next))
+#define list_for_each(pos, head, member) for(pos=container_of(typeof(*(pos)), member, (head)->next); \
+                                                &((pos)->member) !=(head); \
+                                                pos=container_of(typeof(*(pos)), member, (pos)->member.next))
+
+#define list_for_each_safe(pos, next, head, member) for(pos=container_of(typeof(*(pos)), member, (head)->next), \
+                                                        next=container_of(typeof(*(pos)), member, (pos)->member.next); \
+                                                        &((pos)->member) !=(head); \
+                                                        pos=next, next = container_of(typeof(*(next)), member, (next)->member.next))
 
 typedef struct list_node {
     struct list_node *prev;
@@ -50,13 +57,6 @@ static inline void list_insert_after(list_node_t *anchor, list_node_t *node)
 
 static inline void list_add(list_node_t* head, list_node_t *node)
 {
-    if (list_empty(head)) {
-        head->next = node;
-        head->prev = node;
-        node->prev = head;
-        node->next = head;
-        return;
-    }
     list_insert_after(head, node);    
 }
 
@@ -82,13 +82,6 @@ static inline list_node_t *list_pop(list_node_t *head)
 
 static inline void list_tail_add(list_node_t *head, list_node_t *node)
 {    
-    if (list_empty(head)) {
-        head->next = node;
-        head->prev = node;
-        node->prev = head;
-        node->next = head;
-        return;
-    }
     list_insert_before(head, node);
 }
 
