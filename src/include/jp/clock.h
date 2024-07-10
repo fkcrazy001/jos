@@ -3,3 +3,4 @@
 
 /// @brief global jiffies 10ms
 extern u32 volatile jiffies;
+extern u32 jiffy;

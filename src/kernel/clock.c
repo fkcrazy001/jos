@@ -20,7 +20,7 @@
 
 static volatile u32 beeping=0;
 u32 volatile jiffies = 0;
-static u32 jiffy = JIFFY;
+u32 jiffy = JIFFY;
 
 void start_beep(void)
 {
@@ -43,6 +43,9 @@ void clock_handler(void)
     jiffies++;
     // DEBUGK("clock jiffies %d...\n", jiffies);
     stop_beep();
+    // wake up potential sleeping tasks
+    task_wakeup();
+    
     // avoid stack overflow
     schedule();
 }

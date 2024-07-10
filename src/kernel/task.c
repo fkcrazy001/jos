@@ -16,6 +16,7 @@ extern void task_switch(task_t *tsk);
 #define NR_TASKS 64
 static task_t *task_table[NR_TASKS];
 static list_node_t default_block_list=LIST_INIT(&default_block_list);
+static list_node_t sleep_list=LIST_INIT(&sleep_list);
 static task_t *idle_task;
 static task_t* get_free_task(void)
 {
@@ -74,12 +75,12 @@ static inline void do_schedule(void)
 void task_block(task_t *task, list_node_t *blist, task_state_e state)
 {
     assert(!get_interrupt_state()); // in disable state
-    assert(node_is_init(&task->blk_node));
+    assert(node_is_init(&task->node));
     
     if (blist == NULL) {
         blist = &default_block_list;
     }
-    list_add(blist, &task->blk_node);
+    list_add(blist, &task->node);
     assert(state!=TASK_RUNNING && state!=TASK_DIED && state != TASK_READY);
     task->state = state;
     if (current == task)
@@ -88,9 +89,42 @@ void task_block(task_t *task, list_node_t *blist, task_state_e state)
 void task_unblock(task_t *task)
 {
     assert(!get_interrupt_state()); // in disable state
-    list_del(&task->blk_node);
-    assert(node_is_init(&task->blk_node));
+    list_del(&task->node);
+    assert(node_is_init(&task->node));
     task->state = TASK_READY;
+}
+
+void task_sleep(u32 ms)
+{
+    assert(!get_interrupt_state());
+    u32 ticks = ms /jiffy;
+    ticks = ticks>0?ticks:1;
+    
+    task_t *pos = NULL, *now = current;
+    assert(node_is_init(&now->node));
+    now->ticks = jiffies + ticks;
+    list_for_each(pos, &sleep_list, node) {
+        if (pos->ticks > now->ticks) {
+            break;
+        }
+    }
+    list_insert_before(&pos->node, &now->node);
+sc:
+    current->state = TASK_SLEEP;
+    do_schedule(); // to other thread
+}
+
+void task_wakeup(void)
+{
+    assert(!get_interrupt_state());// in if disable
+    task_t *task, *next;
+    list_for_each_safe(task, next, &sleep_list, node) {
+        if (task->ticks > jiffies) {
+            break; // min task is still sleeping
+        }
+        task->ticks = 1; // 1 for schedule assert
+        task_unblock(task); // use unblock here just for convinence
+    }
 }
 
 void schedule(void)
@@ -99,6 +133,7 @@ void schedule(void)
     assert(now->magic == J_MAGIC);
 
     now->jiffies = jiffies;
+    assert(now->ticks); // avoid overflow
     if (--now->ticks > 0) {
         return;
     }
@@ -147,7 +182,7 @@ static task_t* task_create(task_func fn,  const char* name, u32 priority, u32 ui
     task->pde = KERNEL_PAGE_DIR;
     task->uid = uid;
     task->vmap = &kernel_map;
-    node_init(&task->blk_node);
+    node_init(&task->node);
     return task;
 }
 
@@ -180,10 +215,12 @@ static void task_setup()
 
 extern void idle_thread(void);
 extern void init_thread(void);
+extern void test_thread(void);
 
 void task_init(void)
 {
     task_setup();
     idle_task = task_create(idle_thread, "idle", 1, KERNEL_USER); // lowest priority
     assert(task_create(init_thread, "initd", 5, NORMAL_USER));
+    assert(task_create(test_thread, "test", 5, KERNEL_USER));
 }

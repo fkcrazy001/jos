@@ -44,5 +44,6 @@ void syscall_init(void)
         syscall_table[i] = (syscall_t)sys_default;
     }
     syscall_table[SYS_NR_TEST] = (syscall_t)sys_test;
+    syscall_table[SYS_NR_SLEEP] = (syscall_t)task_sleep;
     syscall_table[SYS_NR_YIELD] = (syscall_t)task_yield;
 }

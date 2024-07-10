@@ -20,10 +20,10 @@ typedef enum task_state {
 
 typedef struct task {
     u32 *stk;
-    list_node_t  blk_node;
+    list_node_t  node; // this node was for task to sleep, block and etc
     task_state_e state;
     u32 priority;
-    u32 ticks;
+    u32 ticks; // 当处于 running 态时，ticks代表剩余时间片；当处于sleeping态时，ticks代表需要被唤醒的时间戳
     u32 jiffies;
     u8  name[TASK_NAME_LEN];
     u32 uid;
@@ -58,4 +58,8 @@ static inline task_t *running_task(void)
 extern void task_yield(void);
 extern void task_block(task_t *task, list_node_t *blist, task_state_e state);
 extern void task_unblock(task_t *task);
+
+void task_sleep(u32 ms);
+void task_wakeup(void);
+
 #endif
