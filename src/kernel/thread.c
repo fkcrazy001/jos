@@ -19,17 +19,19 @@ void idle_thread(void)
     
 }
 
-static mutex_t mtx;
+static lock_t lock;
 
 void init_thread(void)
 {
-    mutex_init(&mtx);
+    lock_init(&lock);
     set_interrupt_state(true);
     while (true)
     {
-        mutex_lock(&mtx);
+        lock_up(&lock);
+        lock_up(&lock);
         DEBUGK("task initd....\n");
-        mutex_unlock(&mtx);
+        lock_down(&lock);
+        lock_down(&lock);
         // sleep(500);
     }
     
@@ -41,9 +43,11 @@ void test_thread(void)
     u32 counter = 0;
     while (true)
     {
-        mutex_lock(&mtx);
+        lock_up(&lock);
+        lock_up(&lock);
         DEBUGK("task test %d....\n", counter++);
-        mutex_unlock(&mtx);
+        lock_down(&lock);
+        lock_down(&lock);
         // sleep(1000);
     }
     

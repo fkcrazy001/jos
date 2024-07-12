@@ -7,7 +7,6 @@ void mutex_init(mutex_t *mtx)
 {
     assert(mtx != NULL);
     mtx->value = false; // no one holds this
-    mtx->owner = NULL;
     list_init(&mtx->waiter);
 }
 
@@ -21,9 +20,8 @@ void mutex_lock(mutex_t *mtx)
         task_block(t, &mtx->waiter, TASK_BLOCKED);
     }
 
-    assert(mtx->value == false && mtx->owner == NULL);
+    assert(mtx->value == false);
     mtx->value++;
-    mtx->owner = t;
     assert(mtx->value == true);
 
     set_interrupt_state(intr);
@@ -31,11 +29,10 @@ void mutex_lock(mutex_t *mtx)
 
 void mutex_unlock(mutex_t *mtx)
 {
-    assert(mtx->owner == current && mtx->value == true);
+    assert(mtx->value == true);
     bool intr = interrupt_disable();
 
     mtx->value = false;
-    mtx->owner = NULL;
     if (!list_empty(&mtx->waiter)) {
         task_unblock(container_of(task_t, node, mtx->waiter.next));
         // 最好yield一下，防止别的进程被饿死
@@ -43,4 +40,33 @@ void mutex_unlock(mutex_t *mtx)
     }
 
     set_interrupt_state(intr);
+}
+
+void lock_init(lock_t *l)
+{
+    l->repeat = 0;
+    l->owner = NULL;
+    mutex_init(&l->mtx);
+}
+
+void lock_up(lock_t *l)
+{
+    task_t *t = current;
+    if (l->owner != t) {
+        mutex_lock(&l->mtx);
+        assert(l->repeat == 0 && l->owner == NULL);
+        l->owner = t;
+        l->repeat = 1;
+    } else {
+        l->repeat++;
+    }
+}
+
+void lock_down(lock_t *l)
+{
+    assert(l->owner == current);
+    if (--l->repeat > 0)
+        return;
+    l->owner = NULL;
+    mutex_unlock(&l->mtx);
 }
