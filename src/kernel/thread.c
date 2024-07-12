@@ -1,7 +1,7 @@
 #include <jp/interrupt.h>
 #include <jp/debug.h>
 #include <jp/syscall.h>
-
+#include <jp/mutex.h>
 
 void idle_thread(void)
 {
@@ -19,13 +19,18 @@ void idle_thread(void)
     
 }
 
+static mutex_t mtx;
+
 void init_thread(void)
 {
+    mutex_init(&mtx);
     set_interrupt_state(true);
     while (true)
     {
+        mutex_lock(&mtx);
         DEBUGK("task initd....\n");
-        sleep(500);
+        mutex_unlock(&mtx);
+        // sleep(500);
     }
     
 }
@@ -36,8 +41,10 @@ void test_thread(void)
     u32 counter = 0;
     while (true)
     {
+        mutex_lock(&mtx);
         DEBUGK("task test %d....\n", counter++);
-        sleep(1000);
+        mutex_unlock(&mtx);
+        // sleep(1000);
     }
     
 }

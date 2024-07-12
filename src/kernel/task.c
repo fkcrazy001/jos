@@ -109,7 +109,6 @@ void task_sleep(u32 ms)
         }
     }
     list_insert_before(&pos->node, &now->node);
-sc:
     current->state = TASK_SLEEP;
     do_schedule(); // to other thread
 }
@@ -222,5 +221,5 @@ void task_init(void)
     task_setup();
     idle_task = task_create(idle_thread, "idle", 1, KERNEL_USER); // lowest priority
     assert(task_create(init_thread, "initd", 5, NORMAL_USER));
-    assert(task_create(test_thread, "test", 5, KERNEL_USER));
+    assert(task_create(test_thread, "test", 5, NORMAL_USER));
 }

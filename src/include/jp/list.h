@@ -24,6 +24,11 @@ typedef struct list_node {
     (head), (head) \
 }
 
+static inline void list_init(list_node_t *head)
+{
+    head->next = head->prev = head;
+}
+
 static inline void node_init(list_node_t *node)
 {
     node->next = node->prev = NULL;
