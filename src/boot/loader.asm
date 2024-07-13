@@ -109,7 +109,7 @@ protect_mode:
     ;xchg bx, bx
     mov eax, 0x20231129
     mov ebx, ards_count ; adapt for grub
-    jmp dword code_selector:0x10000
+    jmp dword code_selector:0x10040
     ud2
 
 read_disk:
