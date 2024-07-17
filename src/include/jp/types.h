@@ -16,6 +16,7 @@
 #define __always_inline __attribute__((always_inline)) inline
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+#define ALIGN(size, n) (u32)(((size)+((n)-1)) & (~(u32)(n-1)))
 
 typedef  unsigned int  size_t;
 

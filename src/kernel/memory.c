@@ -6,6 +6,7 @@
 #include <jp/stdlib.h>
 #include <jp/string.h>
 #include <jp/bitmap.h>
+#include <jp/multiboot2.h>
 
 #define ZONE_VALID 1
 #define ZONE_RESERVED 2
@@ -39,25 +40,49 @@ static u32 KERNEL_PAGE_TABLE[] = {
 // thus one page can manage 4M memory
 #define KERNEL_MEMORY_SIZE  (PAGE_SIZE * 1024 * ARRAY_SIZE(KERNEL_PAGE_TABLE))
 
-void mem_init(u32 magic, u32 ards_cnt_p)
+void mem_init(u32 magic, u32 addr)
 {
-    u32 count;
-    ards_t *ptr;
+    u32 count = 0;
     if (magic == J_MAGIC) {
-        count = *(u32*)ards_cnt_p;
-        ptr = (ards_t*)(ards_cnt_p + 4);
+        ards_t *ptr;
+        count = *(u32*)addr;
+        ptr = (ards_t*)(addr + 4);
+        for (size_t i = 0; i < count; ++i, ptr++) {
+            DEBUGK("Memory base 0x%p, size 0x%p, type %d\n",
+                (u32)ptr->base, (u32)ptr->size, (u32)ptr->type);
+            if (ptr->type == ZONE_VALID && ptr->size > mem_size) {
+                mem_base = ptr->base;
+                mem_size = ptr->size;
+            }
+        }
+    } else if (magic == MULTIBOOT2_MAGIC) {
+        u32 size = *(u32*)addr;
+        DEBUGK("total multiboot info size 0x%x\n", size);
+        multi_tag_t *t = (multi_tag_t*)(addr+8);
+        while (t->type != MULTIBOOT_TAG_TYPE_END)
+        {
+            DEBUGK("tag type = %d, size=%d\n", t->type, t->size);
+            if (t->type == MULTIBOOT_TAG_TYPE_MMAP)
+                break;
+            t = (multi_tag_t*)((u32)t + ALIGN(t->size, 8));
+        }
+        multi_tag_mmap_t *mt = (multi_tag_mmap_t*)t;
+        multi_mmap_entry_t *e = mt->entries;
+        while ((u32)e < (u32)t + t->size)
+        {
+            DEBUGK("Memory base 0x%p, size 0x%p, type %d\n",
+                (u32)e->addr, (u32)e->len, (u32)e->type);
+            if (e->type == MULTIBOOT_MEMORY_AVAILABLE && e->len > mem_size) {
+                mem_base = (u32)e->addr;
+                mem_size = (u32)e->len;
+            }
+            count++;
+            e = (multi_mmap_entry_t*)((u32)e + mt->entry_size);
+        }
     } else {
         panic("unknow magic 0x%p\n", magic);
     }
 
-    for (size_t i = 0; i < count; ++i, ptr++) {
-        DEBUGK("Memory base 0x%p, size 0x%p, type %d\n",
-            (u32)ptr->base, (u32)ptr->size, (u32)ptr->type);
-        if (ptr->type == ZONE_VALID && ptr->size > mem_size) {
-            mem_base = ptr->base;
-            mem_size = ptr->size;
-        }
-    }
     DEBUGK("ARDS count %d\n", count);
     DEBUGK("Memory base 0x%p\n", mem_base);
     DEBUGK("Memory size 0x%p\n", mem_size);

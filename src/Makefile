@@ -139,7 +139,7 @@ qemug:$(BUILD)/master.img
 .PHONY: qemub
 qemub:$(BUILD)/kernel.iso
 	$(QEMU) $(QEMU_CDROM) \
-	# $(QEMU_DEBUG)
+	$(QEMU_DEBUG)
 
 $(BUILD)/master.vmdk:$(BUILD)/master.img
 	qemu-img convert -pO vmdk $< $@

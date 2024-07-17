@@ -21,7 +21,7 @@ typedef struct descriptor_t /* 共 8 个字节 */
     unsigned char available : 1;   // 该安排的都安排了，送给操作系统吧
     unsigned char long_mode : 1;   // 64 位扩展标志
     unsigned char big : 1;         // 32 位 还是 16 位;
-    unsigned char granularity : 1; // 粒度 4KB 或 1B
+    unsigned char granularity : 1; // 段界限粒度 4KB 或 1B
     unsigned char base_high;       // 基地址 24 ~ 31 位
 } _packed descriptor_t;
 
@@ -48,7 +48,10 @@ typedef struct pointer_t
 
 void gdt_init(void);
 
-#define KERNEL_CS   (1 << 3)
-#define KERNEL_DS   (2 << 3)
+#define KERNEL_CODE_IDX 1
+#define KERNEL_DATA_IDX 2
+
+#define KERNEL_CS   (KERNEL_CODE_IDX << 3)
+#define KERNEL_DS   (KERNEL_DATA_IDX << 3)
 
 #endif
