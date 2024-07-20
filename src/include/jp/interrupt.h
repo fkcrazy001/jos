@@ -31,8 +31,7 @@ typedef struct gate {
 #define SYSCALL_GATE 0x80
 
 #define PIC_INT_VEC_START    0x20
-#define PIC_INT_VEC_END      0x2f
-
+//  the offset of  PIC_INT_VEC_START
 #define IRQ_CLOCK 0      // 时钟
 #define IRQ_KEYBOARD 1   // 键盘
 #define IRQ_CASCADE 2    // 8259 从片控制器
@@ -49,6 +48,8 @@ typedef struct gate {
 #define IRQ_MATH 13      // 协处理器 x87
 #define IRQ_HARDDISK 14  // ATA 硬盘第一通道
 #define IRQ_HARDDISK2 15 // ATA 硬盘第二通道
+
+#define PIC_INT_VEC_END      0x2f
 
 void pic_int_handler(u32 vector);
 void pic_int_init(void);

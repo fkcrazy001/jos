@@ -27,12 +27,12 @@ void init_thread(void)
     set_interrupt_state(true);
     while (true)
     {
-        lock_up(&lock);
-        lock_up(&lock);
-        DEBUGK("task initd....\n");
-        lock_down(&lock);
-        lock_down(&lock);
-        // sleep(500);
+        // lock_up(&lock);
+        // lock_up(&lock);
+        // DEBUGK("task initd....\n");
+        // lock_down(&lock);
+        // lock_down(&lock);
+        sleep(500);
     }
     
 }
@@ -43,12 +43,12 @@ void test_thread(void)
     u32 counter = 0;
     while (true)
     {
-        lock_up(&lock);
-        lock_up(&lock);
-        DEBUGK("task test %d....\n", counter++);
-        lock_down(&lock);
-        lock_down(&lock);
-        // sleep(1000);
+        // lock_up(&lock);
+        // lock_up(&lock);
+        // DEBUGK("task test %d....\n", counter++);
+        // lock_down(&lock);
+        // lock_down(&lock);
+        sleep(1000);
     }
     
 }

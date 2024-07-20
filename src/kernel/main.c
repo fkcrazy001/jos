@@ -11,6 +11,7 @@ extern void kernel_mm_init(void);
 extern bool interrupt_disable(void);
 extern bool get_interrupt_state(void);
 extern void set_interrupt_state(bool state);
+extern void keyboard_init(void);
 extern void syscall_init(void);
 extern void list_test(void);
 void kernel_init(void)
@@ -21,6 +22,7 @@ void kernel_init(void)
     // time_init();
     // rtc_init();
     clock_init();
+    keyboard_init();
     task_init();
     syscall_init();
     list_test();
