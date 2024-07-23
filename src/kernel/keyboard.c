@@ -12,6 +12,10 @@
 // print screen
 #define CODE_PRINT_SCREEN_DOWN 0xb7
 
+#define KEYBOARD_CMD_LED 0xed
+#define KEYBOARD_CMD_ACK 0xfa
+#define KEYBOARD_CMD_REPEAT 0xfe
+
 typedef enum
 {
     KEY_NONE,
@@ -235,6 +239,58 @@ static bool extcode_state;  // 扩展码状态
 
 #define EXT_CODE 0xe0
 
+
+// 0. 输出缓冲区状态：1 表示输出缓冲区满
+// 1. 输入缓冲区状态：1 表示输入缓冲区满
+// 2. 系统标志位：加电时置为 0，自检通过时置为 1
+// 3. 命令/数据位：1 表示输入缓冲区的内容是命令，0 表示输入缓冲区的内容是数据
+// 4. 1 表示键盘启用，0 表示键盘禁用
+// 5. 1 表示发送超时 （存疑）
+// 6. 1 表示接受超时 （存疑）
+// 7. 奇偶校验出错
+static void keyboard_wait_tx(void)
+{
+    u8 state;
+    do {
+        state = inb(KEYBOARD_CTRL_PORT);
+    } while(state & 0x02);
+}
+
+static bool keyboard_wait_ack_ok(void)
+{
+    u8 state;
+    do {
+        state = inb(KEYBOARD_DATA_PORT);
+    } while(state != KEYBOARD_CMD_ACK);
+    return state == KEYBOARD_CMD_ACK;
+}
+
+static void set_leds(void)
+{
+    u8 leds = ((capslock_state<<2)|(numlock_state<<1)|scrlock_state);
+    u8 retry = 3;
+again:
+    if (retry-- <= 0) {
+        DEBUGK("set led state failed after 3 retrys, give up...\n");
+        return;
+    }
+    keyboard_wait_tx();
+    outb(KEYBOARD_DATA_PORT, KEYBOARD_CMD_LED);
+    if(!keyboard_wait_ack_ok())
+        goto again;
+
+    keyboard_wait_tx();
+    outb(KEYBOARD_DATA_PORT, leds);
+    // while (keyboard_wait_ack_ok())
+    // {
+    //     DEBUGK("recv ack ok when init\n");
+    // }
+    if(!keyboard_wait_ack_ok())
+        goto again;
+}
+
+
+
 static void keyboard_handler(void)
 {
     u16 scancode = inb(KEYBOARD_DATA_PORT);
@@ -256,7 +312,7 @@ static void keyboard_handler(void)
         makecode = KEY_PRINT_SCREEN;
     }
     if (makecode > KEY_PRINT_SCREEN) {
-        DEBUGK("invalid make code 0x%x, origin 0x%x", makecode, scancode);
+        DEBUGK("invalid make code 0x%x, origin 0x%x\n", makecode, scancode);
         return;
     }
     bool breakcode = ((scancode & 0x80)!=0);
@@ -273,13 +329,17 @@ static void keyboard_handler(void)
     } else if (makecode == KEY_CAPSLOCK) {
         capslock_state = !capslock_state;
         led = true;
-    } else if (KEY_SCRLOCK) {
+    } else if (makecode == KEY_SCRLOCK) {
         scrlock_state = !scrlock_state;
         led = true;
     }
-    // @fixme: 这个逻辑只有在a-z时候成立。应当优化一下
-    bool shift = shift_state ^ capslock_state;
-    char ch = 0;
+    
+    if (led)
+        set_leds();
+    bool shift = shift_state;
+    char ch = keymap[makecode][0];
+    if(ch >= 'a' && ch <= 'z')
+        shift ^= capslock_state;
     if (ext==3 && (makecode != KEY_SLASH)) {
         // DEBUGK("extern code, scancode = 0x%x\n", scancode);
         // ext mode, we always use 1 rather than 0, though they are the same
@@ -299,6 +359,7 @@ void keyboard_init(void)
     scrlock_state = false;
     numlock_state = false;
     extcode_state = false;
+    set_leds();
     pic_set_interrupt_handler(IRQ_KEYBOARD, keyboard_handler);
     pic_set_interrupt(IRQ_KEYBOARD, true);
 }
