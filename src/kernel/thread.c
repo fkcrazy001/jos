@@ -34,9 +34,7 @@ void init_thread(void)
         // DEBUGK("task initd....\n");
         // lock_down(&lock);
         // lock_down(&lock);
-        bool intr = interrupt_disable();
         keyboard_read(&ch, 1);
-        set_interrupt_state(intr);
         printk("%c", ch);
         sleep(500);
     }

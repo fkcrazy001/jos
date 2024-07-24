@@ -74,7 +74,8 @@ static inline void do_schedule(void)
 
 void task_block(task_t *task, list_node_t *blist, task_state_e state)
 {
-    assert(!get_interrupt_state()); // in disable state
+    // assert(!get_interrupt_state()); // in disable state
+    bool intr = interrupt_disable();
     assert(node_is_init(&task->node));
     
     if (blist == NULL) {
@@ -85,6 +86,7 @@ void task_block(task_t *task, list_node_t *blist, task_state_e state)
     task->state = state;
     if (current == task)
         do_schedule();
+    set_interrupt_state(intr);
 }
 void task_unblock(task_t *task)
 {
