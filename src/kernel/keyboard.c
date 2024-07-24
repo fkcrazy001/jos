@@ -2,6 +2,8 @@
 #include <jp/io.h>
 #include <jp/types.h>
 #include <jp/debug.h>
+#include <jp/mutex.h>
+#include <jp/fifo.h>
 
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_CTRL_PORT 0x64
@@ -289,7 +291,11 @@ again:
         goto again;
 }
 
-
+static lock_t lock;
+static task_t *waiter;
+#define BUFFER_SIZE 64
+static char buf[BUFFER_SIZE];
+static fifo_t fifo;
 
 static void keyboard_handler(void)
 {
@@ -312,7 +318,7 @@ static void keyboard_handler(void)
         makecode = KEY_PRINT_SCREEN;
     }
     if (makecode > KEY_PRINT_SCREEN) {
-        DEBUGK("invalid make code 0x%x, origin 0x%x\n", makecode, scancode);
+        // DEBUGK("invalid make code 0x%x, origin 0x%x\n", makecode, scancode);
         return;
     }
     bool breakcode = ((scancode & 0x80)!=0);
@@ -350,7 +356,28 @@ static void keyboard_handler(void)
     }
     if (ch == INV)
         return;
-    DEBUGK("%c pressed\n", ch);
+    fifo_put(&fifo, ch);
+    if (waiter != NULL) {
+        task_unblock(waiter);
+        waiter = NULL;
+    }
+}
+
+u32 keyboard_read(char *buf, u32 count)
+{
+    lock_up(&lock);
+    int nr = 0;
+    while (nr < count)
+    {
+        while (fifo_empty(&fifo))
+        {
+            waiter = current;
+            task_block(waiter, NULL, TASK_WAITING);
+        }
+        buf[nr++] = fifo_get(&fifo);
+    }
+    lock_down(&lock);
+    return nr;
 }
 
 void keyboard_init(void)
@@ -360,6 +387,9 @@ void keyboard_init(void)
     numlock_state = false;
     extcode_state = false;
     set_leds();
+    lock_init(&lock);
+    fifo_init(&fifo, buf, BUFFER_SIZE);
+    waiter = NULL;
     pic_set_interrupt_handler(IRQ_KEYBOARD, keyboard_handler);
     pic_set_interrupt(IRQ_KEYBOARD, true);
 }

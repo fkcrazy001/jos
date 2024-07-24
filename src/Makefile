@@ -61,6 +61,7 @@ $(BUILD)/kernel.bin: $(BUILD)/kernel/start.o \
 					$(BUILD)/lib/bitmap.o \
 					$(BUILD)/lib/syscall.o \
 					$(BUILD)/lib/list.o \
+					$(BUILD)/lib/fifo.o \
 
 	$(shell mkdir -p $(dir $@))
 	ld  ${LDFLAGS} $^ -o $@

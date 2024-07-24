@@ -2,6 +2,7 @@
 #include <jp/debug.h>
 #include <jp/syscall.h>
 #include <jp/mutex.h>
+#include <jp/printk.h>
 
 void idle_thread(void)
 {
@@ -19,12 +20,13 @@ void idle_thread(void)
     
 }
 
-static lock_t lock;
+
+extern u32 keyboard_read(char *buf, u32 count);
 
 void init_thread(void)
 {
-    lock_init(&lock);
     set_interrupt_state(true);
+    char ch;
     while (true)
     {
         // lock_up(&lock);
@@ -32,6 +34,10 @@ void init_thread(void)
         // DEBUGK("task initd....\n");
         // lock_down(&lock);
         // lock_down(&lock);
+        bool intr = interrupt_disable();
+        keyboard_read(&ch, 1);
+        set_interrupt_state(intr);
+        printk("%c", ch);
         sleep(500);
     }
     
