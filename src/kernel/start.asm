@@ -38,15 +38,16 @@ data_selector equ (2<<3)
 global _start
 _start:
     mov byte [0xb8000], 'K'
-    xchg bx, bx
     push ebx ; p ards_counts
     push eax ; magic
     call console_init ; hope stack won't overflow
+    xchg bx, bx
     call gdt_init
-    
+    xchg bx, bx
+
     lgdt [gdt_ptr]
     jmp dword code_selector:_next
-_next 
+_next:
     mov ax, data_selector
     mov ds, ax
     mov es, ax

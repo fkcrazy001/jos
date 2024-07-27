@@ -14,8 +14,10 @@ extern void set_interrupt_state(bool state);
 extern void keyboard_init(void);
 extern void syscall_init(void);
 extern void list_test(void);
+extern void tss_init(void);
 void kernel_init(void)
 {
+    tss_init();
     interrupt_init();
     mem_map_init();
     kernel_mm_init();

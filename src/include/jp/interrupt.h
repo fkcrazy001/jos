@@ -22,10 +22,6 @@ typedef struct gate {
     u16 offset1; // 16-32
 } _packed gate_t;
 
-#define TASK_GATE 0b0101
-#define INTERRUPT_GATE  0b1110
-#define TRAP_GATE  0b1111
-
 #define IDT_SIZE 256
 
 #define SYSCALL_GATE 0x80
