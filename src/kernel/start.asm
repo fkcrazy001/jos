@@ -41,9 +41,9 @@ _start:
     push ebx ; p ards_counts
     push eax ; magic
     call console_init ; hope stack won't overflow
-    xchg bx, bx
+    ; xchg bx, bx
     call gdt_init
-    xchg bx, bx
+    ; xchg bx, bx
 
     lgdt [gdt_ptr]
     jmp dword code_selector:_next

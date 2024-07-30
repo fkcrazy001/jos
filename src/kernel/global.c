@@ -73,6 +73,6 @@ void tss_init(void)
     td->DPL = 0;
     td->type = TSS_32_A;
 
-    BMB;
+    // BMB;
     asm volatile("ltr %%ax\n"::"a"(KERNEL_TSS_SELECTOR));
 }

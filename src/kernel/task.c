@@ -8,9 +8,10 @@
 #include <jp/bitmap.h>
 #include <jp/joker.h>
 #include <jp/clock.h>
+#include <jp/global.h>
 
 extern bitmap_t kernel_map;
-
+extern tss_t tss;
 extern void task_switch(task_t *tsk);
 
 #define NR_TASKS 64
@@ -54,6 +55,15 @@ static task_t* task_search(task_state_e state)
     return task;
 }
 
+static void task_active(task_t *t)
+{
+    if (t->uid != KERNEL_USER) {
+        // 意味着下一次中断发生， push interrupt frame总是在t那一页最开始的地方
+        // 有点奇怪的，但是内核线程也没有什么栈上的数据要保存，所以应该无所谓
+        tss.esp0 = (u32)t + PAGE_SIZE; 
+    }
+}
+
 /// @brief when calling this func, @current will be blocked on no cases
 ///        if no ready task is found, will cause an assert failure
 /// @param  
@@ -69,6 +79,7 @@ static inline void do_schedule(void)
     if (now->state == TASK_RUNNING)
         now->state = TASK_READY;
     next->state = TASK_RUNNING;
+    task_active(next);
     task_switch(next);
 }
 
@@ -213,6 +224,41 @@ static void task_setup()
 //     }
     
 // }
+
+// 由于这个函数会对当前任务的栈顶部进行修改，调用者需要满足以下条件
+// 1. 在当前任务栈顶留出足够的空间(至少sizeof(intr_frame_t))
+// 2. 这个函数永远不会返回
+void task_to_user_mode(task_func f)
+{
+    task_t *t = current;
+    u32 intr_f_p = (u32)t + PAGE_SIZE;
+    intr_f_p -= sizeof(intr_frame_t);
+    intr_frame_t *iframe = (intr_frame_t*)intr_f_p;
+    iframe->vector = iframe->vector0 = 0x20;
+    iframe->edi = 1;
+    iframe->esi = 2;
+    iframe->ebp = 0;
+    iframe->dummy_esp = 4;
+    iframe->ebx = 5;
+    iframe->edx = 6;
+    iframe->ecx = 7;
+    iframe->eax = 8;
+
+    iframe->gs = 0;
+    iframe->ds = USER_DATA_SELECTOR;
+    iframe->fs = USER_DATA_SELECTOR;
+    iframe->ss = USER_DATA_SELECTOR;
+    iframe->es = USER_DATA_SELECTOR;
+    iframe->cs = USER_CODE_SELECTOR;
+
+    iframe->error = J_MAGIC;
+    u32 user_stack = alloc_kpage(1); // @todo: use process va
+    iframe->eip = (u32)f;
+    iframe->eflags = (0<<12)|0b10|1<<9; // intr enable | 0b10 fixed| IOPL=0
+    iframe->esp = user_stack + PAGE_SIZE;
+    asm volatile("movl %0, %%esp\n"
+                "jmp interrupt_exit\n"::"m"(iframe));
+}
 
 extern void idle_thread(void);
 extern void init_thread(void);

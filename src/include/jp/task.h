@@ -44,6 +44,30 @@ typedef struct task_frame {
     //void *arg; // arg = $esp + 4
 } task_frame_t;
 
+// 中断帧
+typedef struct intr_frame {
+    u32 vector;
+    u32 edi;
+    u32 esi;
+    u32 ebp;
+    u32 dummy_esp; // 没什么用
+    u32 ebx;
+    u32 edx;
+    u32 ecx;
+    u32 eax;
+    u32 gs;
+    u32 fs;
+    u32 es;
+    u32 ds;
+    u32 vector0;
+    u32 error;
+    u32 eip;
+    u32 cs;
+    u32 eflags;
+    u32 esp; // user esp
+    u32 ss; // user ss
+} intr_frame_t;
+
 void schedule(void);
 
 static inline task_t *running_task(void)

@@ -5,7 +5,9 @@ extern printk
 extern handler_table
 
 section .text
-
+; if from ring1 above, cpu would 
+; 1. pop esp0 and ss0 from tss
+; 2. push esp3, ss3
 %macro INTERRUPT_HANDLER 2
 interrupt_handler_%1:
 %ifn %2

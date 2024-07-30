@@ -22,23 +22,24 @@ void idle_thread(void)
 
 
 extern u32 keyboard_read(char *buf, u32 count);
-
-void init_thread(void)
+void task_to_user_mode(task_func f);
+void user_init_thread(void)
 {
-    set_interrupt_state(true);
+    u32 counter;
     char ch;
     while (true)
     {
-        // lock_up(&lock);
-        // lock_up(&lock);
-        // DEBUGK("task initd....\n");
-        // lock_down(&lock);
-        // lock_down(&lock);
-        keyboard_read(&ch, 1);
-        printk("%c", ch);
-        sleep(500);
+        BMB;
+        // asm volatile("in $0x64, %al\n");
+        // printk("user mode\n");
+        sleep(100);
     }
-    
+}
+
+void init_thread(void)
+{
+    char tmp[100];
+    task_to_user_mode(user_init_thread);
 }
 
 void test_thread(void)
