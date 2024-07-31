@@ -37,4 +37,11 @@ typedef  unsigned long long  u64;
 
 typedef u32 time_t;
 
+typedef int fd_t;
+typedef enum {
+    stdin,
+    stdout,
+    stderr,
+} std_fd_e;
+
 #endif

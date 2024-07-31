@@ -3,6 +3,7 @@
 #include <jp/assert.h>
 #include <jp/syscall.h>
 #include <jp/task.h>
+#include <jp/console.h>
 
 #define SYSCALL_SIZE 64
 // args above p3 is common args pushed by syscall_handler
@@ -36,6 +37,16 @@ static u32 sys_test(void)
     return 255;
 }
 
+static int32_t sys_write(u32 fd, u32 buf, u32 len)
+{
+    // @todo buf is user va, transfer to pa
+    if (fd == stdout || fd == stderr) {
+        return console_write((char*)buf, len);
+    }
+    panic("write!!!");
+    return -1;
+}
+
 extern void task_yield(void);
 
 void syscall_init(void)
@@ -46,4 +57,5 @@ void syscall_init(void)
     syscall_table[SYS_NR_TEST] = (syscall_t)sys_test;
     syscall_table[SYS_NR_SLEEP] = (syscall_t)task_sleep;
     syscall_table[SYS_NR_YIELD] = (syscall_t)task_yield;
+    syscall_table[SYS_NR_WRITE] = (syscall_t)sys_write;
 }

@@ -3,6 +3,7 @@
 #include <jp/syscall.h>
 #include <jp/mutex.h>
 #include <jp/printk.h>
+#include <jp/stdio.h>
 
 void idle_thread(void)
 {
@@ -29,9 +30,10 @@ void user_init_thread(void)
     char ch;
     while (true)
     {
-        BMB;
+        // BMB;
         // asm volatile("in $0x64, %al\n");
         // printk("user mode\n");
+        printf("user mode %d\n", counter++);
         sleep(100);
     }
 }
