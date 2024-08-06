@@ -7,6 +7,7 @@
 #include <jp/string.h>
 #include <jp/bitmap.h>
 #include <jp/multiboot2.h>
+#include <jp/task.h>
 
 #define ZONE_VALID 1
 #define ZONE_RESERVED 2
@@ -38,8 +39,11 @@ static u32 KERNEL_PAGE_TABLE[] = {
 #define KERNEL_MAP_BITS 0x4000
 // one page (4k) has 1024 entries, each entry can map a page(4k)
 // thus one page can manage 4M memory
-#define KERNEL_MEMORY_SIZE  (PAGE_SIZE * 1024 * ARRAY_SIZE(KERNEL_PAGE_TABLE))
-
+// 2 = ARRAY_SIZE(KERNEL_PAGE_TABLE)
+#define KPDE_SIZE (PAGE_SIZE * 1024 * 2)
+#if KERNEL_MEMORY_SIZE != KPDE_SIZE
+#error "KERNEL MEMORY SIZE != defined in kernel pde, can't map"
+#endif
 void mem_init(u32 magic, u32 addr)
 {
     u32 count = 0;
@@ -222,14 +226,31 @@ static inline page_entry_t* get_pde(void)
     return (page_entry_t*)0xfffff000;
 }
 
-static inline page_entry_t *get_pte(u32 vaddr)
-{
-    return (page_entry_t*)(0xffc00000 | (DIDX(vaddr) << 12));
-}
 
 static __always_inline void flush_tlb(u32 vaddr) 
 {
     asm volatile("invlpg (%0)" ::"r"(vaddr):"memory");
+}
+
+#define PDE_MASk 0xffc00000
+
+static inline page_entry_t *get_pte(u32 vaddr, bool create)
+{
+    page_entry_t *pde = get_pde();
+    u32 idx = DIDX(vaddr);
+    page_entry_t *entry = &pde[idx];
+
+    assert(create || entry->present); // either create or exist
+
+    page_entry_t *table = (page_entry_t*)(PDE_MASk|(idx<<12));
+    if (!entry->present) {
+        DEBUGK("get and create new page table entry for 0x%p\n", vaddr);
+        u32 page = get_page();
+        entry_init(entry, IDX(page));
+        flush_tlb((u32)table);
+        memset(table, 0, PAGE_SIZE);
+    }
+    return table;
 }
 
 static u32 scan_page(bitmap_t *map, u32 count)
@@ -264,4 +285,49 @@ u32 free_kpage(u32 addr, u32 count)
     assert(count>0);
     reset_page(&kernel_map, addr, count);
     DEBUGK("FREE kernel pages start from 0x%p, count %d\n", addr, count);
+}
+
+void link_page(u32 vaddr)
+{
+    // must be page
+    ASSERT_PAGE(vaddr);
+
+    page_entry_t *pte = get_pte(vaddr, true);
+    page_entry_t *entry = &pte[TIDX(vaddr)];
+    task_t *now = current;
+    bitmap_t *vmmap=now->vmap;
+    u32 idx = IDX(vaddr);
+    if (entry->present) {
+        assert(bitmap_test(vmmap, idx));
+        return;
+    }
+    assert(!bitmap_test(vmmap, idx));
+    u32 pa = get_page();
+    entry_init(entry, IDX(pa));
+    flush_tlb(vaddr);
+    bitmap_set(vmmap, idx, true);
+
+    DEBUGK("link va 0x%p to pa 0x%p\n", vaddr, pa);
+}
+
+void unlink_page(u32 vaddr)
+{
+    ASSERT_PAGE(vaddr);
+    page_entry_t *pte = get_pte(vaddr, false);
+    page_entry_t *entry = &pte[TIDX(vaddr)];
+
+    task_t *task = current;
+    bitmap_t *vmmap = task->vmap;
+    u32 idx = IDX(vaddr);
+    if (!entry->present) {
+        assert(!bitmap_test(vmmap, idx));
+        return;
+    }
+    assert(entry->present && bitmap_test(vmmap, idx));
+    entry->present = false;
+    bitmap_set(vmmap, idx, 0);
+    u32 pa = PAGE(entry->index);
+    put_page(pa);
+    flush_tlb(vaddr);
+    DEBUGK("unlink va 0x%p to pa 0x%p\n", vaddr, pa);
 }

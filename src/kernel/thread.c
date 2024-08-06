@@ -34,6 +34,7 @@ void user_init_thread(void)
         // asm volatile("in $0x64, %al\n");
         // printk("user mode\n");
         // printf("user mode %d\n", counter++);
+        test();
         sleep(2000);
     }
 }
@@ -55,15 +56,6 @@ void test_thread(void)
         // DEBUGK("task test %d....\n", counter++);
         // lock_down(&lock);
         // lock_down(&lock);
-        void *ptr = kmalloc(1200);
-        DEBUGK("kmalloc 0x%p\n", ptr);
-        kfree(ptr);
-        ptr = kmalloc(1024);
-        DEBUGK("kmalloc 0x%p\n", ptr);
-        kfree(ptr);
-        ptr = kmalloc(54);
-        DEBUGK("kmalloc 0x%p\n", ptr);
-        kfree(ptr);
         sleep(5000);
     }
     

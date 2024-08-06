@@ -4,6 +4,7 @@
 #include <jp/syscall.h>
 #include <jp/task.h>
 #include <jp/console.h>
+#include <jp/memory.h>
 
 #define SYSCALL_SIZE 64
 // args above p3 is common args pushed by syscall_handler
@@ -27,13 +28,12 @@ static task_t *task = NULL;
 
 static u32 sys_test(void)
 {
-    if (!task) {
-        task = current;
-        task_block(task, NULL, TASK_BLOCKED);
-    } else {
-        task_unblock(task);
-        task = NULL;
-    }
+    u32 addr = 0x1600000;
+    char *ptr = (char*)addr;
+    link_page(addr);
+    *ptr='a';
+    unlink_page(addr);
+    // *ptr = 'B'; // PF HERE
     return 255;
 }
 

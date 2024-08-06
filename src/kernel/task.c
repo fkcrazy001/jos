@@ -9,6 +9,7 @@
 #include <jp/joker.h>
 #include <jp/clock.h>
 #include <jp/global.h>
+#include <jp/arena.h>
 
 extern bitmap_t kernel_map;
 extern tss_t tss;
@@ -231,6 +232,10 @@ static void task_setup()
 void task_to_user_mode(task_func f)
 {
     task_t *t = current;
+    // @todo free mem
+    t->vmap = kmalloc(sizeof(bitmap_t));
+    void *buf = (void*)alloc_kpage(1); // @todo 一页内存bitmap(4k*4k*8)仅支持128M va
+    bitmap_init(t->vmap, buf, PAGE_SIZE, KERNEL_MEMORY_SIZE/PAGE_SIZE);
     u32 intr_f_p = (u32)t + PAGE_SIZE;
     intr_f_p -= sizeof(intr_frame_t);
     intr_frame_t *iframe = (intr_frame_t*)intr_f_p;
