@@ -26,7 +26,7 @@ typedef struct ards {
 static u32 mem_base = 0;
 static u32 mem_size = 0;
 static u32 total_pages = 0;
-static u32 free_pages = 0;
+u32 free_pages = 0;
 
 #define used_pages (total_pages - free_pages)
 
@@ -249,7 +249,7 @@ static void reset_page(bitmap_t *map, u32 vaddr, u32 count)
         bitmap_set(map, idx+i, 0);
     }
 }
-
+ // this api either success or panic
 u32 alloc_kpage(u32 count)
 {
     assert(count>0);

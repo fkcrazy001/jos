@@ -4,7 +4,7 @@
 #include <jp/mutex.h>
 #include <jp/printk.h>
 #include <jp/stdio.h>
-
+#include  <jp/arena.h>
 void idle_thread(void)
 {
     set_interrupt_state(true);
@@ -33,8 +33,8 @@ void user_init_thread(void)
         // BMB;
         // asm volatile("in $0x64, %al\n");
         // printk("user mode\n");
-        printf("user mode %d\n", counter++);
-        sleep(100);
+        // printf("user mode %d\n", counter++);
+        sleep(2000);
     }
 }
 
@@ -55,7 +55,16 @@ void test_thread(void)
         // DEBUGK("task test %d....\n", counter++);
         // lock_down(&lock);
         // lock_down(&lock);
-        sleep(1000);
+        void *ptr = kmalloc(1200);
+        DEBUGK("kmalloc 0x%p\n", ptr);
+        kfree(ptr);
+        ptr = kmalloc(1024);
+        DEBUGK("kmalloc 0x%p\n", ptr);
+        kfree(ptr);
+        ptr = kmalloc(54);
+        DEBUGK("kmalloc 0x%p\n", ptr);
+        kfree(ptr);
+        sleep(5000);
     }
     
 }

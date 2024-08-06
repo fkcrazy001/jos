@@ -15,12 +15,14 @@ extern void keyboard_init(void);
 extern void syscall_init(void);
 extern void list_test(void);
 extern void tss_init(void);
+extern void arena_init(void);
 void kernel_init(void)
 {
     tss_init();
     interrupt_init();
     mem_map_init();
     kernel_mm_init();
+    arena_init();
     // time_init();
     // rtc_init();
     clock_init();
