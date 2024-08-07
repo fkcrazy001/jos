@@ -168,6 +168,11 @@ u32 get_cr3(void)
     asm volatile("movl %cr3, %eax\n");
 }
 
+u32 get_cr2(void)
+{
+    asm volatile("movl %cr2, %eax\n");
+}
+
 void set_cr3(u32 pde)
 {
     ASSERT_PAGE(pde); // must be page
@@ -330,4 +335,54 @@ void unlink_page(u32 vaddr)
     put_page(pa);
     flush_tlb(vaddr);
     DEBUGK("unlink va 0x%p to pa 0x%p\n", vaddr, pa);
+}
+
+/// @brief copy current task page dir entry
+/// @param  none
+/// @return pde
+page_entry_t *copy_pde(void)
+{
+    task_t *t = current;
+    page_entry_t *new = (page_entry_t*)alloc_kpage(1); // process pde belongs to kernel
+    
+    // new pde is almost the same as old, except for last item pointer itself
+    memcpy(new, (void*)t->pde, PAGE_SIZE);
+    entry_init(&new[1023], IDX(new)); // last item points itself for get_pde
+    return new;
+}
+typedef struct page_error_code {
+    u32 present:1,
+        rw:1,
+        user:1,
+        resv0:1,
+        fetch:1,
+        protection:1,
+        shadow:1,
+        resv1:8,
+        sgx:1,
+        resv2:16;
+}_packed page_error_code_t;
+
+void page_fault(u32 vector,
+                u32 edi, u32 esi, u32 ebp, u32 esp,
+                u32 ebx, u32 edx, u32 ecx, u32 eax, //pusha
+                u32 gs,  u32 fs,  u32 es,  u32 ds, // push seg
+                u32 vector0, u32 error, // push by macro
+                u32 eip, u32 cs, u32 eflags)
+{
+    assert(vector0==vector && vector == 0xe); // pf
+    u32 vaddr = get_cr2();
+    DEBUGK("page fault @0x%p\n", vaddr);
+    task_t *t = current;
+    assert(KERNEL_MEMORY_SIZE <= vaddr && vaddr<USER_STK_TOP);
+    page_error_code_t *code = (page_error_code_t*)&error;
+    if (!code->present && (vaddr >= USER_STK_BOTTOM)) {
+        // stk page fault
+        u32 page = PAGE(IDX(vaddr));
+        BMB;
+        link_page(page);
+        BMB;
+        return;
+    }
+    panic("page fault!!!");
 }

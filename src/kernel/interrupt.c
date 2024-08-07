@@ -12,6 +12,7 @@ static pointer_t pidt;
 #define   INTERRUPT_ENTRY_SIZE   0x30
 extern void* handler_entry_table[INTERRUPT_ENTRY_SIZE];
 extern void syscall_handler();
+extern void page_fault();
 typedef void (*handler_t)(u32 vector,
                             u32 edi, u32 esi, u32 ebp, u32 esp,
                             u32 ebx, u32 edx, u32 ecx, u32 eax, //pusha
@@ -49,7 +50,7 @@ static void exception_handler(u32 vector,
                             u32 edi, u32 esi, u32 ebp, u32 esp,
                             u32 ebx, u32 edx, u32 ecx, u32 eax, //pusha
                             u32 gs,  u32 fs,  u32 es,  u32 ds, // push seg
-                            u32 vector0, u32 error, // push by macro
+                            u32 vector0, u32 error, // push by macro or by cpu
                             u32 eip, u32 cs, u32 eflags)
 {
     assert(vector0 == vector);
@@ -91,6 +92,8 @@ static void idt_init(void)
     for (i = 0; i < INTERRUPT_ENTRY_SIZE; ++i) {
         handler_table[i] = exception_handler;
     }
+
+    handler_table[0xe] = (handler_t)page_fault;
 
     for (i=PIC_INT_VEC_START; i<=PIC_INT_VEC_END; ++i) {
         handler_table[i] = (handler_t)pic_int_handler;

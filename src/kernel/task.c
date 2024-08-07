@@ -56,8 +56,14 @@ static task_t* task_search(task_state_e state)
     return task;
 }
 
-static void task_active(task_t *t)
+static void task_activate(task_t *t)
 {
+    if (t->pde != get_cr3()) {
+        // 这里已经切换成新的进程的pde了
+        // 也就意味着新旧进程的pde对内核空间的映射必须是一致的
+        // 不然内核接下来就会出现PF，是灾难性的
+        set_cr3(t->pde);
+    }
     if (t->uid != KERNEL_USER) {
         // 意味着下一次中断发生， push interrupt frame总是在t那一页最开始的地方
         // 有点奇怪的，但是内核线程也没有什么栈上的数据要保存，所以应该无所谓
@@ -80,7 +86,7 @@ static inline void do_schedule(void)
     if (now->state == TASK_RUNNING)
         now->state = TASK_READY;
     next->state = TASK_RUNNING;
-    task_active(next);
+    task_activate(next);
     task_switch(next);
 }
 
@@ -229,6 +235,7 @@ static void task_setup()
 // 由于这个函数会对当前任务的栈顶部进行修改，调用者需要满足以下条件
 // 1. 在当前任务栈顶留出足够的空间(至少sizeof(intr_frame_t))
 // 2. 这个函数永远不会返回
+// 3. 调用时需要cpu中断已经被关闭
 void task_to_user_mode(task_func f)
 {
     task_t *t = current;
@@ -236,6 +243,10 @@ void task_to_user_mode(task_func f)
     t->vmap = kmalloc(sizeof(bitmap_t));
     void *buf = (void*)alloc_kpage(1); // @todo 一页内存bitmap(4k*4k*8)仅支持128M va
     bitmap_init(t->vmap, buf, PAGE_SIZE, KERNEL_MEMORY_SIZE/PAGE_SIZE);
+    
+    // @todo free pde
+    t->pde = (u32)copy_pde();
+    set_cr3(t->pde);
     u32 intr_f_p = (u32)t + PAGE_SIZE;
     intr_f_p -= sizeof(intr_frame_t);
     intr_frame_t *iframe = (intr_frame_t*)intr_f_p;
@@ -257,10 +268,9 @@ void task_to_user_mode(task_func f)
     iframe->cs = USER_CODE_SELECTOR;
 
     iframe->error = J_MAGIC;
-    u32 user_stack = alloc_kpage(1); // @todo: use process va
     iframe->eip = (u32)f;
     iframe->eflags = (0<<12)|0b10|1<<9; // intr enable | 0b10 fixed| IOPL=0
-    iframe->esp = user_stack + PAGE_SIZE;
+    iframe->esp = USER_STK_TOP;
     asm volatile("movl %0, %%esp\n"
                 "jmp interrupt_exit\n"::"m"(iframe));
 }

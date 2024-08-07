@@ -28,12 +28,6 @@ static task_t *task = NULL;
 
 static u32 sys_test(void)
 {
-    u32 addr = 0x1600000;
-    char *ptr = (char*)addr;
-    link_page(addr);
-    *ptr='a';
-    unlink_page(addr);
-    // *ptr = 'B'; // PF HERE
     return 255;
 }
 

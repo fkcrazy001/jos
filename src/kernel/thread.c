@@ -18,12 +18,15 @@ void idle_thread(void)
         );
         yield();
     }
-    
 }
-
 
 extern u32 keyboard_read(char *buf, u32 count);
 void task_to_user_mode(task_func f);
+void test_r(void)
+{
+    char tmp[1024];
+    test_r();
+}
 void user_init_thread(void)
 {
     u32 counter;
@@ -33,8 +36,9 @@ void user_init_thread(void)
         // BMB;
         // asm volatile("in $0x64, %al\n");
         // printk("user mode\n");
-        // printf("user mode %d\n", counter++);
-        test();
+        printf("user mode %d\n", counter++);
+        BMB;
+        test_r();
         sleep(2000);
     }
 }
@@ -53,7 +57,7 @@ void test_thread(void)
     {
         // lock_up(&lock);
         // lock_up(&lock);
-        // DEBUGK("task test %d....\n", counter++);
+        DEBUGK("task test %d....\n", counter++);
         // lock_down(&lock);
         // lock_down(&lock);
         sleep(5000);

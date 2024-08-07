@@ -1,15 +1,20 @@
 #pragma once
 
 #define PAGE_SIZE (1<<12)
+
 // pa: 0 - 0xffff: 内核专用，用于操作显示屏，存放页表信息
+#define KERNEL_PAGE_DIR    0x1000
 #define MEMORY_BASE (0x100000) // 1M 可用内存开始的地方
 
 // pa: 0x10000 - 0x7ffff: 内核专用内存
 #define KERNEL_MEMORY_SIZE 0x800000
 // pa: 0x80000 - 0x7fffff: 用户空间
 
-#define USER_STACK_TOP 0x8000000
-#define KERNEL_PAGE_DIR    0x1000
+// va
+// 126M - 128M: user stk 
+#define USER_STK_TOP 0x8000000
+#define USER_STK_MAX_SIZE 0x200000
+#define USER_STK_BOTTOM (USER_STK_TOP - USER_STK_MAX_SIZE)
 
 typedef struct page_entry {
     u32 present:1; // in mem
@@ -28,8 +33,12 @@ typedef struct page_entry {
 u32 get_cr3(void);
 void set_cr3(u32 pde);
 
+u32 get_cr2(void);
+
 u32 alloc_kpage(u32 count);
 u32 free_kpage(u32 addr, u32 count);
 
 void link_page(u32 vaddr);
 void unlink_page(u32 vaddr);
+
+page_entry_t *copy_pde(void);
