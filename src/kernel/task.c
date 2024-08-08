@@ -25,13 +25,25 @@ static task_t* get_free_task(void)
     for (int i=0; i<NR_TASKS; ++i) {
         if (task_table[i] == NULL) {
             // @todo free_kpage
-            task_table[i] = (task_t*)alloc_kpage(1);
-            return task_table[i];
+            task_t *t = (task_t*)alloc_kpage(1);
+            memset(t, 0, PAGE_SIZE);
+            t->pid = i;
+            task_table[i] = t;
+            return t;
         }
     }
     panic("can't create more jobs");
 }
 
+int32_t sys_getpid(void)
+{
+    return current->pid;
+}
+
+int32_t sys_getppid(void)
+{
+    return current->ppid;
+}
 /// @brief 找到除了自己之外的优先级最高的（tick最大的，或者jiffies最小的，一种调度算法吧）
 ///        call me in interrupt disable state
 /// @param state target state
@@ -180,7 +192,6 @@ void task_yield(void)
 static task_t* task_create(task_func fn,  const char* name, u32 priority, u32 uid)
 {
     task_t *task = get_free_task();
-    memset(task, 0, PAGE_SIZE);
     u32 stack = (u32)task + PAGE_SIZE;
     stack -= sizeof(task_frame_t);
     task_frame_t *tf = (task_frame_t*)stack;

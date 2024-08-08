@@ -33,13 +33,8 @@ void user_init_thread(void)
         // printk("user mode\n");
         // @todo user cant access kernel mm
         *(char*)0xB8000 = 'b';
-        printf("user mode %d\n", counter++);
-        char *ptr = (void*)0x900000;
-        brk(ptr);
-        ptr -= 0x1000;
-        ptr[3]=0x5a;
-        brk((char*)0x800000);
-        sleep(2000);
+        printf("init thread pid %d, ppid %d\n", getpid(), getppid());
+        sleep(1000);
     }
 }
 
@@ -57,7 +52,7 @@ void test_thread(void)
     {
         // lock_up(&lock);
         // lock_up(&lock);
-        DEBUGK("task test %d....\n", counter++);
+        DEBUGK("task test %d, pid %d, ppid %d....\n", counter++, getpid(), getppid());
         // lock_down(&lock);
         // lock_down(&lock);
         sleep(5000);

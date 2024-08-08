@@ -27,6 +27,8 @@ typedef struct task {
     u32 jiffies;
     u8  name[TASK_NAME_LEN];
     u32 uid;
+    int32_t pid; // process id
+    int32_t ppid; // parent pid
     u32 pde;  // process page dir entry
     u32 brk; // process heap max addr
     struct bitmap_t *vmap;//va map
@@ -86,5 +88,8 @@ extern void task_unblock(task_t *task);
 
 void task_sleep(u32 ms);
 void task_wakeup(void);
+
+int32_t sys_getpid(void);
+int32_t sys_getppid(void);
 
 #endif

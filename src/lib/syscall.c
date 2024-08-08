@@ -65,3 +65,12 @@ int32_t brk(char *addr)
 {
     return _syscall1(SYS_NR_BRK, (u32)addr);
 }
+
+int32_t getpid(void)
+{
+    return _syscall0(SYS_NR_GETPID);
+}
+int32_t getppid(void)
+{
+    return _syscall0(SYS_NR_GETPPID);
+}
