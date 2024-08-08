@@ -2,13 +2,13 @@
 
 #define PAGE_SIZE (1<<12)
 
-// pa: 0 - 0xffff: 内核专用，用于操作显示屏，存放页表信息
+// pa/va: 0 - 0xffff: 内核专用，用于操作显示屏，存放页表信息
 #define KERNEL_PAGE_DIR    0x1000
 #define MEMORY_BASE (0x100000) // 1M 可用内存开始的地方
 
-// pa: 0x10000 - 0x7ffff: 内核专用内存
+// pa/va: 0x10000 - 0x7ffff: 内核专用内存
 #define KERNEL_MEMORY_SIZE 0x800000
-// pa: 0x80000 - 0x7fffff: 用户空间
+// pa/va: 0x80000 - 0x7fffff: 用户空间
 
 // va
 // 126M - 128M: user stk 
@@ -42,3 +42,6 @@ void link_page(u32 vaddr);
 void unlink_page(u32 vaddr);
 
 page_entry_t *copy_pde(void);
+
+// let user heap max to addr(start from KERNEL_MEMORY_SIZE)
+int32_t sys_brk(u32 addr);

@@ -12,11 +12,11 @@
 #define ZONE_VALID 1
 #define ZONE_RESERVED 2
 
-#define IDX(addr) ((u32)addr >> 12) // page idx
-#define DIDX(addr) (((u32)addr >> 22) & 0x3ff) // first 10bits
-#define TIDX(addr) (((u32)addr >> 12) & 0x3ff) // next 10bits
-#define PAGE(idx) ((u32)idx << 12)             // 获取页索引 idx 对应的页开始的位置
-#define ASSERT_PAGE(addr) assert(((u32)addr & 0xfff) == 0)
+#define IDX(addr) ((u32)(addr) >> 12) // page idx
+#define DIDX(addr) (((u32)(addr) >> 22) & 0x3ff) // first 10bits
+#define TIDX(addr) (((u32)(addr) >> 12) & 0x3ff) // next 10bits
+#define PAGE(idx) ((u32)(idx) << 12)             // 获取页索引 idx 对应的页开始的位置
+#define ASSERT_PAGE(addr) assert(((u32)(addr) & 0xfff) == 0)
 
 typedef struct ards {
     u64 base;
@@ -376,13 +376,35 @@ void page_fault(u32 vector,
     task_t *t = current;
     assert(KERNEL_MEMORY_SIZE <= vaddr && vaddr<USER_STK_TOP);
     page_error_code_t *code = (page_error_code_t*)&error;
-    if (!code->present && (vaddr >= USER_STK_BOTTOM)) {
+    if (!code->present && (vaddr < t->brk || vaddr >= USER_STK_BOTTOM)) {
         // stk page fault
         u32 page = PAGE(IDX(vaddr));
-        BMB;
         link_page(page);
-        BMB;
         return;
     }
     panic("page fault!!!");
+}
+
+int32_t sys_brk(u32 addr)
+{
+    ASSERT_PAGE(addr);
+    task_t *now = current;
+    assert(now->uid != KERNEL_USER);
+    assert(addr >= KERNEL_MEMORY_SIZE && addr < USER_STK_BOTTOM);
+    if (now->brk > addr) {
+        // unlink some page
+        u32 start = addr;
+        for (; start < now->brk; start += PAGE_SIZE) {
+            unlink_page(start);
+        }
+    } else if (now->brk < addr) {
+        // expend
+        if ((addr - now->brk)/PAGE_SIZE > free_pages) {
+            DEBUGK("alloc too many memory\n");
+            // fail for this stage... many use page swap
+            return -1;
+        }
+    }
+    now->brk = addr;
+    return 0;
 }

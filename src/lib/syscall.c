@@ -60,3 +60,8 @@ int32_t write(fd_t fd, char *buf, u32 len)
 {
     return _syscall3(SYS_NR_WRITE, fd, (u32)buf, len);
 }
+// addr must be page start
+int32_t brk(char *addr)
+{
+    return _syscall1(SYS_NR_BRK, (u32)addr);
+}

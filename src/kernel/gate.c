@@ -6,7 +6,7 @@
 #include <jp/console.h>
 #include <jp/memory.h>
 
-#define SYSCALL_SIZE 64
+#define SYSCALL_SIZE 256
 // args above p3 is common args pushed by syscall_handler
 typedef u32 (*syscall_t)(u32 param1, u32 param2, u32 param3, ...);
 syscall_t syscall_table[SYSCALL_SIZE];
@@ -52,4 +52,5 @@ void syscall_init(void)
     syscall_table[SYS_NR_SLEEP] = (syscall_t)task_sleep;
     syscall_table[SYS_NR_YIELD] = (syscall_t)task_yield;
     syscall_table[SYS_NR_WRITE] = (syscall_t)sys_write;
+    syscall_table[SYS_NR_BRK] = (syscall_t)sys_brk;
 }

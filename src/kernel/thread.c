@@ -22,11 +22,6 @@ void idle_thread(void)
 
 extern u32 keyboard_read(char *buf, u32 count);
 void task_to_user_mode(task_func f);
-void test_r(void)
-{
-    char tmp[1024];
-    test_r();
-}
 void user_init_thread(void)
 {
     u32 counter;
@@ -36,9 +31,14 @@ void user_init_thread(void)
         // BMB;
         // asm volatile("in $0x64, %al\n");
         // printk("user mode\n");
+        // @todo user cant access kernel mm
+        *(char*)0xB8000 = 'b';
         printf("user mode %d\n", counter++);
-        BMB;
-        test_r();
+        char *ptr = (void*)0x900000;
+        brk(ptr);
+        ptr -= 0x1000;
+        ptr[3]=0x5a;
+        brk((char*)0x800000);
         sleep(2000);
     }
 }

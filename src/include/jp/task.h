@@ -27,8 +27,9 @@ typedef struct task {
     u32 jiffies;
     u8  name[TASK_NAME_LEN];
     u32 uid;
-    u32 pde;  // page dir entry
-    struct bitmap_t *vmap;//
+    u32 pde;  // process page dir entry
+    u32 brk; // process heap max addr
+    struct bitmap_t *vmap;//va map
     u32 magic;
 } task_t;
 

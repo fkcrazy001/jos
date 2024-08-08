@@ -247,6 +247,10 @@ void task_to_user_mode(task_func f)
     // @todo free pde
     t->pde = (u32)copy_pde();
     set_cr3(t->pde);
+
+    // brk
+    t->brk = KERNEL_MEMORY_SIZE;
+
     u32 intr_f_p = (u32)t + PAGE_SIZE;
     intr_f_p -= sizeof(intr_frame_t);
     intr_frame_t *iframe = (intr_frame_t*)intr_f_p;
