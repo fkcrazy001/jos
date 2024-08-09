@@ -18,7 +18,7 @@
 
 typedef struct page_entry {
     u32 present:1; // in mem
-    u32 wirte:1; // 0:r, 1:rw
+    u32 write:1; // 0:r, 1:rw
     u32 user:1; // 1:all user, 0 : DPL < 3
     u32 pwt:1; // page write through 1：直写模式， 0 会写模式
     u32 pcd:1; // page cache disable 禁止页缓存

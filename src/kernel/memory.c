@@ -36,6 +36,7 @@ static u32 KERNEL_PAGE_TABLE[] = {
     0x2000,
     0x3000,
 };
+#define KERNEL_PTE_SIZE ARRAY_SIZE(KERNEL_PAGE_TABLE)
 #define KERNEL_MAP_BITS 0x4000
 // one page (4k) has 1024 entries, each entry can map a page(4k)
 // thus one page can manage 4M memory
@@ -130,7 +131,7 @@ void mem_map_init(void)
     bitmap_scan(&kernel_map, page_info_n);
 }
 
-// alloc one free page
+// alloc one free page from 8M above
 static u32 get_page(void)
 {
     if (free_pages == 0) {
@@ -192,7 +193,7 @@ static void entry_init(page_entry_t *entry, u32 index)
     assert(index < (1<<20));
     *(u32*)entry = 0;
     entry->present = 1;
-    entry->wirte = 1;
+    entry->write = 1;
     entry->user = 1;
     entry->index = index;
 }
@@ -337,7 +338,24 @@ void unlink_page(u32 vaddr)
     DEBUGK("unlink va 0x%p to pa 0x%p\n", vaddr, pa);
 }
 
-/// @brief copy current task page dir entry
+/// @brief copy va(page aligned) to a user physical page
+/// @param page 
+/// @return new physical page in 8m above
+static u32 copy_page(u32 va)
+{
+    ASSERT_PAGE(va);
+    u32 page = get_page();
+    page_entry_t *pte0 = (page_entry_t*)PDE_MASk;
+    assert(!pte0->present); // address 0-4k shouldn't be mapped
+    entry_init(pte0, IDX(page));
+    flush_tlb(0);
+    memcpy((void*)0, (void*)va, PAGE_SIZE);
+    pte0->present = false;
+    flush_tlb(0);
+    return page;
+}
+
+/// @brief copy current task page dir entry and table entry, copy on write
 /// @param  none
 /// @return pde
 page_entry_t *copy_pde(void)
@@ -348,8 +366,32 @@ page_entry_t *copy_pde(void)
     // new pde is almost the same as old, except for last item pointer itself
     memcpy(new, (void*)t->pde, PAGE_SIZE);
     entry_init(&new[1023], IDX(new)); // last item points itself for get_pde
+
+    // copy each page dir entry
+    for (size_t didx = KERNEL_PTE_SIZE; didx < 1023; ++didx) {
+        page_entry_t *pde = &new[didx];
+        if (!pde->present)
+            continue;
+        page_entry_t *pte = (page_entry_t*)(PDE_MASk | (didx << 12));
+        for (size_t tidx = 0; tidx<1024; ++tidx) {
+            page_entry_t *e = &pte[tidx];
+            if (!e->present)
+                continue;
+            assert(page_info_array[e->index] > 0);
+            e->write = false; // copy on write
+            page_info_array[e->index]++;
+            assert(page_info_array[e->index] < 255); // can't ref more than 255
+        }
+        // page table entries don't support COW now, may support in future
+        pde->index = IDX(copy_page((u32)pte));
+    }
+
+    // pde content changed, set pde to force a tlb refresh
+    set_cr3(t->pde); 
+
     return new;
 }
+
 typedef struct page_error_code {
     u32 present:1,
         rw:1,
@@ -376,7 +418,28 @@ void page_fault(u32 vector,
     task_t *t = current;
     assert(KERNEL_MEMORY_SIZE <= vaddr && vaddr<USER_STK_TOP);
     page_error_code_t *code = (page_error_code_t*)&error;
-    if (!code->present && (vaddr < t->brk || vaddr >= USER_STK_BOTTOM)) {
+    // addr present
+    if (code->present) {
+        assert(code->rw);  // present but write opr
+        page_entry_t *pte = get_pte(vaddr, false);
+        page_entry_t *e = &pte[TIDX(vaddr)];
+        assert(e->present && !e->write);
+        if (page_info_array[e->index] == 1) {
+            e->write = true;
+            DEBUGK("set page %d to writable\n", e->index);
+        } else {
+            // copy page
+            assert(page_info_array[e->index] > 1);
+            u32 pp = copy_page(PAGE(IDX(vaddr)));
+            entry_init(e, IDX(pp));
+            flush_tlb(vaddr);
+            page_info_array[e->index]--;
+            DEBUGK("copy page for 0x%p\n", vaddr);
+        }
+        return;
+    }
+    // not present
+    if (vaddr < t->brk || vaddr >= USER_STK_BOTTOM) {
         // stk page fault
         u32 page = PAGE(IDX(vaddr));
         link_page(page);

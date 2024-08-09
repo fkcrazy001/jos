@@ -74,3 +74,8 @@ int32_t getppid(void)
 {
     return _syscall0(SYS_NR_GETPPID);
 }
+
+int32_t fork(void)
+{
+    return _syscall0(SYS_NR_FORK);
+}

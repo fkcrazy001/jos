@@ -10,6 +10,7 @@
 #include <jp/clock.h>
 #include <jp/global.h>
 #include <jp/arena.h>
+#include <jp/stdlib.h>
 
 extern bitmap_t kernel_map;
 extern tss_t tss;
@@ -288,6 +289,54 @@ void task_to_user_mode(task_func f)
     iframe->esp = USER_STK_TOP;
     asm volatile("movl %0, %%esp\n"
                 "jmp interrupt_exit\n"::"m"(iframe));
+}
+
+extern void interrupt_exit(void);
+
+static void task_build_stk(task_t *t)
+{
+    u32 addr = (u32)t + PAGE_SIZE;
+    addr -= sizeof(intr_frame_t);
+    intr_frame_t *iframe = (intr_frame_t*)addr;
+    iframe->eax = 0; // ret value
+
+    addr -= sizeof(task_frame_t);
+    task_frame_t *tf = (task_frame_t*)addr;
+    tf->ebp = 0x5a5a5a5a;
+    tf->ebx = 0x5a5a5a5a;
+    tf->edi = 0x5a5a5a5a;
+    tf->esi = 0x5a5a5a5a;
+
+    // first schedule goto interrupt_exit
+    tf->eip = interrupt_exit; 
+
+    t->stk = (void*)addr;
+}
+
+int32_t task_fork(void)
+{
+    task_t *t = current;
+    assert(t->state == TASK_RUNNING);
+    task_t *child = get_free_task();
+    int32_t pid = child->pid;
+    memcpy(child, t, PAGE_SIZE);
+
+    child->pid = pid;
+    child->ppid = t->pid;
+    child->ticks = child->priority;
+    child->state = TASK_READY;
+    
+    // vm
+    void *buf = (void*)alloc_kpage(div_round_up(t->vmap->length, PAGE_SIZE));
+    memcpy(buf, t->vmap->bits, t->vmap->length);
+    child->vmap->bits = buf;
+
+    child->pde = (u32)copy_pde();
+    
+    task_build_stk(child); // build child task stack
+
+    // do_schedule(); // ?
+    return child->pid;
 }
 
 extern void idle_thread(void);

@@ -56,4 +56,5 @@ void syscall_init(void)
 
     syscall_table[SYS_NR_GETPID] = (syscall_t)sys_getpid;
     syscall_table[SYS_NR_GETPPID] = (syscall_t)sys_getppid;
+    syscall_table[SYS_NR_FORK] = (syscall_t)task_fork;
 }

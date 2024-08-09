@@ -92,4 +92,5 @@ void task_wakeup(void);
 int32_t sys_getpid(void);
 int32_t sys_getppid(void);
 
+int32_t task_fork(void);
 #endif

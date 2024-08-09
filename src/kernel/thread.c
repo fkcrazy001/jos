@@ -4,7 +4,8 @@
 #include <jp/mutex.h>
 #include <jp/printk.h>
 #include <jp/stdio.h>
-#include  <jp/arena.h>
+#include <jp/arena.h>
+#include <jp/stdlib.h>
 void idle_thread(void)
 {
     set_interrupt_state(true);
@@ -33,7 +34,18 @@ void user_init_thread(void)
         // printk("user mode\n");
         // @todo user cant access kernel mm
         *(char*)0xB8000 = 'b';
-        printf("init thread pid %d, ppid %d\n", getpid(), getppid());
+        int32_t pid = fork();
+        if (pid > 0) {
+            counter=2;
+            printf("parent process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
+        } else if (pid == 0) {
+            counter=3;
+            printf("child process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
+        } else {
+            printf("fork failed \n");
+        }
+        printf("counter %d\n", counter++);
+        hang();
         sleep(1000);
     }
 }
