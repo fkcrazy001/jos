@@ -79,3 +79,8 @@ int32_t fork(void)
 {
     return _syscall0(SYS_NR_FORK);
 }
+
+void exit(int status)
+{
+    (void)_syscall1(SYS_NR_EXIT, (u32)status);
+}

@@ -392,6 +392,32 @@ page_entry_t *copy_pde(void)
     return new;
 }
 
+// 在调用完这个接口后，程序会使用kernel pde。也就是说只能访问 0-8M 的va了。
+void free_pde(void)
+{
+    task_t *t = current;
+    page_entry_t *now = get_pde();
+
+    // free each page dir entry
+    for (size_t didx = KERNEL_PTE_SIZE; didx < 1023; ++didx) {
+        page_entry_t *pde = &now[didx];
+        if (!pde->present)
+            continue;
+        page_entry_t *pte = (page_entry_t*)(PDE_MASk | (didx << 12));
+        for (size_t tidx = 0; tidx<1024; ++tidx) {
+            page_entry_t *e = &pte[tidx];
+            if (!e->present)
+                continue;
+            assert(page_info_array[e->index] > 0);
+            put_page(PAGE(e->index));
+        }
+        assert(page_info_array[pde->index] > 0);
+        put_page(PAGE(pde->index));
+    }
+    free_kpage(t->pde, 1);
+    set_cr3(KERNEL_PAGE_DIR); // use kernel pde
+}
+
 typedef struct page_error_code {
     u32 present:1,
         rw:1,
@@ -430,10 +456,10 @@ void page_fault(u32 vector,
         } else {
             // copy page
             assert(page_info_array[e->index] > 1);
+            page_info_array[e->index]--;
             u32 pp = copy_page(PAGE(IDX(vaddr)));
             entry_init(e, IDX(pp));
             flush_tlb(vaddr);
-            page_info_array[e->index]--;
             DEBUGK("copy page for 0x%p\n", vaddr);
         }
         return;

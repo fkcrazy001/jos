@@ -248,15 +248,14 @@ static void task_setup()
 // 1. 在当前任务栈顶留出足够的空间(至少sizeof(intr_frame_t))
 // 2. 这个函数永远不会返回
 // 3. 调用时需要cpu中断已经被关闭
+#define USER_TASK_BITMAP_MAX_LENGTH PAGE_SIZE
 void task_to_user_mode(task_func f)
 {
     task_t *t = current;
-    // @todo free mem
-    t->vmap = kmalloc(sizeof(bitmap_t));
-    void *buf = (void*)alloc_kpage(1); // @todo 一页内存bitmap(4k*4k*8)仅支持128M va
-    bitmap_init(t->vmap, buf, PAGE_SIZE, KERNEL_MEMORY_SIZE/PAGE_SIZE);
+    void *buf = (void*)kmalloc(USER_TASK_BITMAP_MAX_LENGTH + sizeof(bitmap_t)); // @todo 一页内存bitmap(4k*4k*8)仅支持128M va
+    t->vmap = buf;
+    bitmap_init(t->vmap, (char*)(t->vmap + 1), USER_TASK_BITMAP_MAX_LENGTH, KERNEL_MEMORY_SIZE/PAGE_SIZE);
     
-    // @todo free pde
     t->pde = (u32)copy_pde();
     set_cr3(t->pde);
 
@@ -316,7 +315,7 @@ static void task_build_stk(task_t *t)
 int32_t task_fork(void)
 {
     task_t *t = current;
-    assert(t->state == TASK_RUNNING);
+    assert(t->state == TASK_RUNNING && t->uid == NORMAL_USER);
     task_t *child = get_free_task();
     int32_t pid = child->pid;
     memcpy(child, t, PAGE_SIZE);
@@ -326,10 +325,12 @@ int32_t task_fork(void)
     child->ticks = child->priority;
     child->state = TASK_READY;
     
-    // vm
-    void *buf = (void*)alloc_kpage(div_round_up(t->vmap->length, PAGE_SIZE));
-    memcpy(buf, t->vmap->bits, t->vmap->length);
-    child->vmap->bits = buf;
+    // vma
+    size_t size = t->vmap->length + sizeof(bitmap_t);
+    void *buf = (void*)kmalloc(size);
+    child->vmap = buf;
+    memcpy(child->vmap, t->vmap, size);
+    child->vmap->bits = (char*)(child->vmap+1);
 
     child->pde = (u32)copy_pde();
     
@@ -337,6 +338,22 @@ int32_t task_fork(void)
 
     // do_schedule(); // ?
     return child->pid;
+}
+
+
+void task_exit(u32 status)
+{
+    task_t *t = current;
+
+    assert(node_is_init(&t->node) && t->state == TASK_RUNNING);
+
+    t->state = TASK_DIED;
+    t->status = status;
+    
+    free_pde();
+    kfree(t->vmap);
+    // @todo: wait() syscall, parent get status and free `t`
+    do_schedule();
 }
 
 extern void idle_thread(void);

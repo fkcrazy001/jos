@@ -25,7 +25,7 @@ extern u32 keyboard_read(char *buf, u32 count);
 void task_to_user_mode(task_func f);
 void user_init_thread(void)
 {
-    u32 counter;
+    u32 counter=0;
     char ch;
     while (true)
     {
@@ -36,16 +36,14 @@ void user_init_thread(void)
         *(char*)0xB8000 = 'b';
         int32_t pid = fork();
         if (pid > 0) {
-            counter=2;
             printf("parent process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
         } else if (pid == 0) {
-            counter=3;
             printf("child process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
+            exit(1);
         } else {
             printf("fork failed \n");
         }
         printf("counter %d\n", counter++);
-        hang();
         sleep(1000);
     }
 }

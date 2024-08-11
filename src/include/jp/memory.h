@@ -42,6 +42,6 @@ void link_page(u32 vaddr);
 void unlink_page(u32 vaddr);
 
 page_entry_t *copy_pde(void);
-
+void free_pde(void);
 // let user heap max to addr(start from KERNEL_MEMORY_SIZE)
 int32_t sys_brk(u32 addr);

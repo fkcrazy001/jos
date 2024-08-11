@@ -1,6 +1,7 @@
 #include <jp/stdlib.h>
 #include <jp/debug.h>
 #include <jp/stdlib.h>
+#include <jp/stdio.h>
 
 void hang(void)
 {

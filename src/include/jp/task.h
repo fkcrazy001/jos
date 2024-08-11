@@ -22,6 +22,7 @@ typedef struct task {
     u32 *stk;
     list_node_t  node; // this node was for task to sleep, block and etc
     task_state_e state;
+    u32 status; // exit code
     u32 priority;
     u32 ticks; // 当处于 running 态时，ticks代表剩余时间片；当处于sleeping态时，ticks代表需要被唤醒的时间戳
     u32 jiffies;
@@ -93,4 +94,5 @@ int32_t sys_getpid(void);
 int32_t sys_getppid(void);
 
 int32_t task_fork(void);
+void task_exit(u32 status);
 #endif

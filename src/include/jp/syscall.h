@@ -6,6 +6,7 @@
 
 typedef enum {
     SYS_NR_TEST,
+    SYS_NR_EXIT = 1,
     SYS_NR_FORK = 2,
     SYS_NR_WRITE = 4,
     SYS_NR_GETPID = 20,
@@ -25,3 +26,5 @@ int32_t getpid(void);
 int32_t getppid(void);
 
 int32_t fork(void);
+#define noreturn
+noreturn void exit(int status);
