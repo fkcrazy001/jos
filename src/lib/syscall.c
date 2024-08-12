@@ -89,3 +89,8 @@ int32_t waitpid(int32_t pid, int *status)
 {
     return _syscall2(SYS_NR_WAITPID, (u32)pid, (u32)status);
 }
+
+time_t time(void)
+{
+    return _syscall0(SYS_NR_TIME);
+}

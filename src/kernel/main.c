@@ -23,7 +23,7 @@ void kernel_init(void)
     mem_map_init();
     kernel_mm_init();
     arena_init();
-    // time_init();
+    time_init();
     // rtc_init();
     clock_init();
     keyboard_init();

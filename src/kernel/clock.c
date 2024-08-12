@@ -37,6 +37,11 @@ void stop_beep(void)
         beeping = 0;
     }
 }
+extern time_t startup_time;
+time_t sys_time(void)
+{
+    return startup_time + (jiffies * JIFFY) / 1000;
+}
 
 void clock_handler(void)
 {

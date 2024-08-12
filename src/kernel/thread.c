@@ -43,13 +43,15 @@ void user_init_thread(void)
             printf("parent process wait child %d exit_code %d\n", child, status);
         } else if (pid == 0) {
             printf("child process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
-            // sleep(1000);
+            time_t now = time();
+            sleep(1000);
+            printf("time before sleep is %d, after sleep(1000) is %d\n", now, time());
             exit(1);
         } else {
             printf("fork failed \n");
         }
         printf("counter %d\n", counter++);
-        sleep(1000);
+        sleep(10000);
     }
 }
 

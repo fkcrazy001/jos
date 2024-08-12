@@ -2,7 +2,7 @@
 
 #include <jp/types.h>
 
-// #include <asm/unistd_32.h> keep the same in linux
+// #include <asm/unistd_32.h> //keep the same in linux
 
 typedef enum {
     SYS_NR_TEST,
@@ -10,6 +10,7 @@ typedef enum {
     SYS_NR_FORK = 2,
     SYS_NR_WRITE = 4,
     SYS_NR_WAITPID = 7,
+    SYS_NR_TIME = 13,
     SYS_NR_GETPID = 20,
     SYS_NR_BRK= 45,
     SYS_NR_GETPPID = 64,
@@ -30,3 +31,4 @@ int32_t fork(void);
 #define noreturn
 noreturn void exit(int status);
 int32_t waitpid(int32_t pid, int *status);
+time_t time(void);
