@@ -36,7 +36,10 @@ void user_init_thread(void)
         *(char*)0xB8000 = 'b';
         int32_t pid = fork();
         if (pid > 0) {
+            int status = 0;
             printf("parent process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
+            int32_t child = waitpid(pid, &status);
+            printf("parent process wait child %d exit_code %d\n", child, status);
         } else if (pid == 0) {
             printf("child process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
             exit(1);

@@ -28,6 +28,7 @@ typedef struct task {
     u32 jiffies;
     u8  name[TASK_NAME_LEN];
     u32 uid;
+    int32_t wpid; // waiting pid
     int32_t pid; // process id
     int32_t ppid; // parent pid
     u32 pde;  // process page dir entry
@@ -95,4 +96,5 @@ int32_t sys_getppid(void);
 
 int32_t task_fork(void);
 void task_exit(u32 status);
+int32_t task_waitpid(int32_t pid, u32 *status);
 #endif

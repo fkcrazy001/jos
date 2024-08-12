@@ -1,5 +1,8 @@
 #pragma once
 
+// @todo userspace addr check
+#define USERADDR_W_CHECK(task, vaddr) (vaddr != NULL)
+
 #define PAGE_SIZE (1<<12)
 
 // pa/va: 0 - 0xffff: 内核专用，用于操作显示屏，存放页表信息

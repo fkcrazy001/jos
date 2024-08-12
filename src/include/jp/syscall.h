@@ -9,6 +9,7 @@ typedef enum {
     SYS_NR_EXIT = 1,
     SYS_NR_FORK = 2,
     SYS_NR_WRITE = 4,
+    SYS_NR_WAITPID = 7,
     SYS_NR_GETPID = 20,
     SYS_NR_BRK= 45,
     SYS_NR_GETPPID = 64,
@@ -28,3 +29,4 @@ int32_t getppid(void);
 int32_t fork(void);
 #define noreturn
 noreturn void exit(int status);
+int32_t waitpid(int32_t pid, int *status);

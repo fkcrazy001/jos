@@ -84,3 +84,8 @@ void exit(int status)
 {
     (void)_syscall1(SYS_NR_EXIT, (u32)status);
 }
+
+int32_t waitpid(int32_t pid, int *status)
+{
+    return _syscall2(SYS_NR_WAITPID, (u32)pid, (u32)status);
+}

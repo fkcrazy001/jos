@@ -351,14 +351,46 @@ void task_exit(u32 status)
     t->status = status;
     
     task_t *parent = task_table[t->ppid];
-    if (!parent || parent->state == TASK_DIED)
-        t->ppid = 1; // let initd do wait for this process
-
+    if (!parent || parent->state == TASK_DIED) {
+        t->ppid = 1; // let initd thread be parent
+        parent = task_table[t->ppid];
+    }
+    assert(parent);
+    if (parent->state == TASK_WAITING && (parent->wpid == t->pid || parent->wpid == -1)) {
+        // parent is waiting for me to die...
+        task_unblock(parent);
+    }
     free_pde();
     kfree(t->vmap);
     // @todo: wait() syscall, parent get status and free `t`
     DEBUGK("task %s, pid %d exit...\n", t->name, t->pid);
     do_schedule();
+}
+
+int32_t task_waitpid(int32_t pid, u32 *status)
+{
+    task_t *now = current;
+    size_t i = 2;
+again:
+    for (; i < NR_TASKS; ++i) {
+        task_t *t = task_table[i];
+        if (!t || t->ppid != now->pid || (pid != -1 && t->pid != pid))
+            continue;
+        // find child, but child not died yet
+        if (t->state != TASK_DIED) {
+            now->wpid = t->pid;
+            break;
+        }
+        task_table[i] = NULL;
+        int32_t cpid = t->pid;
+        if (USERADDR_W_CHECK(now, status))
+            *status = t->status;
+        free_kpage((u32)t, 1);
+        return cpid;
+    }
+    //  not child found or child hasn't died yet
+    task_block(now, NULL, TASK_WAITING);
+    goto again;
 }
 
 extern void idle_thread(void);
