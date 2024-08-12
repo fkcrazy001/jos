@@ -350,9 +350,14 @@ void task_exit(u32 status)
     t->state = TASK_DIED;
     t->status = status;
     
+    task_t *parent = task_table[t->ppid];
+    if (!parent || parent->state == TASK_DIED)
+        t->ppid = 1; // let initd do wait for this process
+
     free_pde();
     kfree(t->vmap);
     // @todo: wait() syscall, parent get status and free `t`
+    DEBUGK("task %s, pid %d exit...\n", t->name, t->pid);
     do_schedule();
 }
 
