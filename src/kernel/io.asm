@@ -20,6 +20,7 @@ inb:
     leave
     ret
 
+global inw
 inw:
     push ebp
     mov ebp, esp

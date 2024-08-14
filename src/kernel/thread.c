@@ -34,24 +34,24 @@ void user_init_thread(void)
         // printk("user mode\n");
         // @todo user cant access kernel mm
         *(char*)0xB8000 = 'b';
-        int32_t pid = fork();
-        if (pid > 0) {
-            int status = 0;
-            printf("parent process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
-            // sleep(1000);
-            int32_t child = waitpid(pid, &status);
-            printf("parent process wait child %d exit_code %d\n", child, status);
-        } else if (pid == 0) {
-            printf("child process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
-            time_t now = time();
-            sleep(1000);
-            printf("time before sleep is %d, after sleep(1000) is %d\n", now, time());
-            exit(1);
-        } else {
-            printf("fork failed \n");
-        }
+        // int32_t pid = fork();
+        // if (pid > 0) {
+        //     int status = 0;
+        //     printf("parent process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
+        //     // sleep(1000);
+        //     int32_t child = waitpid(pid, &status);
+        //     printf("parent process wait child %d exit_code %d\n", child, status);
+        // } else if (pid == 0) {
+        //     printf("child process, pid %d, getpid %d, ppid %d\n", pid, getpid(), getppid());
+        //     time_t now = time();
+        //     sleep(1000);
+        //     printf("time before sleep is %d, after sleep(1000) is %d\n", now, time());
+        //     exit(1);
+        // } else {
+        //     printf("fork failed \n");
+        // }
         printf("counter %d\n", counter++);
-        sleep(10000);
+        sleep(1000);
     }
 }
 

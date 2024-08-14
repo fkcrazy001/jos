@@ -16,6 +16,7 @@ extern void syscall_init(void);
 extern void list_test(void);
 extern void tss_init(void);
 extern void arena_init(void);
+extern void ide_init(void);
 void kernel_init(void)
 {
     tss_init();
@@ -25,6 +26,7 @@ void kernel_init(void)
     arena_init();
     time_init();
     // rtc_init();
+    ide_init();
     clock_init();
     keyboard_init();
     task_init();

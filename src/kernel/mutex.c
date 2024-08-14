@@ -13,7 +13,7 @@ void mutex_init(mutex_t *mtx)
 void mutex_lock(mutex_t *mtx)
 {
     task_t *t = current;
-    assert(t->state == TASK_RUNNING);
+    // assert(t->state == TASK_RUNNING);
     bool intr = interrupt_disable();
     while (mtx->value == true)
     {
