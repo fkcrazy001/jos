@@ -9,5 +9,5 @@ void debugk(char *file, const char* func, int line, const char* fmt, ...);
 #else 
 #define DEBUGK
 #endif
-
+#define WARNK(fmt, args...) debugk(__FILE__, __func__, __LINE__, fmt, ##args)
 #endif

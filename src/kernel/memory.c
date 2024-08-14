@@ -489,7 +489,7 @@ int32_t sys_brk(u32 addr)
     } else if (now->brk < addr) {
         // expend
         if ((addr - now->brk)/PAGE_SIZE > free_pages) {
-            DEBUGK("alloc too many memory\n");
+            WARNK("alloc too many memory\n");
             // fail for this stage... many use page swap
             return -1;
         }
