@@ -110,6 +110,51 @@ static u32 ide_busy_wait(ide_ctrl_t *ctrl, u8 mask)
     }
 }
 
+static void ide_handler(uint32_t vector)
+{
+    ide_ctrl_t *ctrl = NULL;
+    // assert(vector == IRQ_HARDDISK2 || vector==IRQ_HARDDISK);
+    if (vector == IRQ_HARDDISK2) {
+        ctrl = &controllers[1];
+    } else if (vector == IRQ_HARDDISK) {
+        ctrl = controllers;
+    } else {
+        panic("invalid hard disk vector %d\n", vector);
+    }
+    if (ctrl->task) {
+        task_unblock(ctrl->task);
+        ctrl->task = NULL; //
+    } else {
+        WARNK("no waiting task but ide interrupt handler was called, ctrl state=0x%x\n", inb(ctrl->iobase + IDE_ALT_STATUS));
+    }
+}
+
+static u32 ide_busy_async_wait(ide_ctrl_t *ctrl, u8 mask)
+{
+    task_t *task = current;
+    while (true)
+    {
+        // 从备用状态寄存器中读状态
+        u8 state = inb(ctrl->iobase + IDE_ALT_STATUS);
+        if (state & IDE_SR_ERR) // 有错误
+        {
+            ide_error(ctrl);
+        }
+        if (state & IDE_SR_BSY) // 驱动器忙
+        {
+            if (task->state == TASK_RUNNING) {
+                assert(!ctrl->task);
+                ctrl->task = task;
+                // @todo: goto sleep state and wakeup timely
+                task_block(task, NULL, TASK_BLOCKED);
+            }
+            continue;
+        }
+        if ((state & mask) == mask) // 等待的状态完成
+            return 0;
+    }
+}
+
 // 选择磁盘
 static void ide_select_drive(ide_disk_t *disk)
 {
@@ -165,13 +210,15 @@ int ide_pio_read(ide_disk_t *disk, void *buf, u8 count, u32 lba)
 
     lock_up(&ctrl->lock);
 
+    assert(!get_interrupt_state());
+
     DEBUGK("read disk %s lba 0x%x\n", disk->name, lba);
 
     // 选择磁盘
     ide_select_drive(disk);
 
     // 等待就绪
-    ide_busy_wait(ctrl, IDE_SR_DRDY);
+    ide_busy_async_wait(ctrl, IDE_SR_DRDY);
 
     // 选择扇区
     ide_select_sector(disk, lba, count);
@@ -181,7 +228,7 @@ int ide_pio_read(ide_disk_t *disk, void *buf, u8 count, u32 lba)
 
     for (size_t i = 0; i < count; i++)
     {
-        ide_busy_wait(ctrl, IDE_SR_DRQ);
+        ide_busy_async_wait(ctrl, IDE_SR_DRQ);
         u32 offset = ((u32)buf + i * SECTOR_SIZE);
         ide_pio_read_sector(disk, (u16 *)offset);
     }
@@ -198,6 +245,7 @@ int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
     ide_ctrl_t *ctrl = disk->ctrl;
 
     lock_up(&ctrl->lock);
+    assert(!get_interrupt_state());
 
     DEBUGK("write disk %s lba 0x%x\n", disk->name, lba);
 
@@ -205,7 +253,7 @@ int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
     ide_select_drive(disk);
 
     // 等待就绪
-    ide_busy_wait(ctrl, IDE_SR_DRDY);
+    ide_busy_async_wait(ctrl, IDE_SR_DRDY);
 
     // 选择扇区
     ide_select_sector(disk, lba, count);
@@ -218,7 +266,7 @@ int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
         u32 offset = ((u32)buf + i * SECTOR_SIZE);
         ide_pio_write_sector(disk, (u16 *)offset);
         outb(ctrl->iobase + IDE_COMMAND, IDE_CMD_CACHE_FLUSH);
-        ide_busy_wait(ctrl, IDE_SR_NULL);
+        ide_busy_async_wait(ctrl, IDE_SR_NULL);
     }
 
     lock_down(&ctrl->lock);
@@ -233,15 +281,7 @@ static void ide_ctrl_init()
         sprintf(ctrl->name, "ide%u", cidx);
         lock_init(&ctrl->lock);
         ctrl->active = NULL;
-
-        if (cidx) // 从通道
-        {
-            ctrl->iobase = IDE_IOBASE_SECONDARY;
-        }
-        else // 主通道
-        {
-            ctrl->iobase = IDE_IOBASE_PRIMARY;
-        }
+        ctrl->task = NULL;
 
         for (size_t didx = 0; didx < IDE_DISK_NR; didx++)
         {
@@ -259,6 +299,18 @@ static void ide_ctrl_init()
                 disk->selector = IDE_LBA_MASTER;
             }
         }
+        if (cidx) // 从通道
+        {
+            ctrl->iobase = IDE_IOBASE_SECONDARY;
+            pic_set_interrupt_handler(IRQ_HARDDISK2,  (pic_handler_t)ide_handler);
+            pic_set_interrupt(IRQ_HARDDISK2, true);
+        }
+        else // 主通道
+        {
+            ctrl->iobase = IDE_IOBASE_PRIMARY;
+            pic_set_interrupt_handler(IRQ_HARDDISK,  (pic_handler_t)ide_handler);
+            pic_set_interrupt(IRQ_HARDDISK, true);
+        }
     }
 }
 
@@ -266,15 +318,4 @@ void ide_init(void)
 {
     DEBUGK("ide init...\n");
     ide_ctrl_init();
-
-    void *buf = (void *)alloc_kpage(1);
-    BMB;
-    DEBUGK("read buffer %x\n", buf);
-    ide_pio_read(&controllers[0].disks[0], buf, 1, 0);
-    BMB;
-    memset(buf, 0x5a, SECTOR_SIZE);
-    BMB;
-    ide_pio_write(&controllers[0].disks[0], buf, 1, 1);
-
-    free_kpage((u32)buf, 1);
 }

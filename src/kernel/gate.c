@@ -5,6 +5,8 @@
 #include <jp/task.h>
 #include <jp/console.h>
 #include <jp/memory.h>
+#include <jp/ide.h>
+#include <jp/string.h>
 
 #define SYSCALL_SIZE 256
 // args above p3 is common args pushed by syscall_handler
@@ -28,6 +30,16 @@ static task_t *task = NULL;
 
 static u32 sys_test(void)
 {
+    void *buf = (void *)alloc_kpage(1);
+    BMB;
+    DEBUGK("read buffer %x\n", buf);
+    ide_pio_read(&controllers[0].disks[0], buf, 1, 0);
+    BMB;
+    memset(buf, 0x5a, SECTOR_SIZE);
+    BMB;
+    ide_pio_write(&controllers[0].disks[0], buf, 1, 1);
+
+    free_kpage((u32)buf, 1);
     return 255;
 }
 

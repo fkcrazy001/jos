@@ -80,6 +80,6 @@ void rtc_init(void)
     
     // set_alarm(2);
 
-    pic_set_interrupt_handler(IRQ_RTC, rtc_handler);
+    pic_set_interrupt_handler(IRQ_RTC,  (pic_handler_t)rtc_handler);
     pic_set_interrupt(IRQ_RTC, true);
 }

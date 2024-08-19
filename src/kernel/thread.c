@@ -58,6 +58,7 @@ void user_init_thread(void)
 void init_thread(void)
 {
     char tmp[100];
+    test();
     task_to_user_mode(user_init_thread);
 }
 

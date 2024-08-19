@@ -71,6 +71,6 @@ void pit_init(void)
 void clock_init(void)
 {
     pit_init();
-    pic_set_interrupt_handler(IRQ_CLOCK, clock_handler);
+    pic_set_interrupt_handler(IRQ_CLOCK, (pic_handler_t)clock_handler);
     pic_set_interrupt(IRQ_CLOCK, true);
 }

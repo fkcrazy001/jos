@@ -3,7 +3,7 @@
 
 #include <jp/types.h>
 
-typedef void (*pic_handler_t)(void);
+typedef void (*pic_handler_t)(uint32_t pic_vector);
 
 /*
 - 0b0101 - 任务门 (Task Gate)：很复杂，而且很低效 x64 就去掉了这种门

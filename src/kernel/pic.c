@@ -44,10 +44,13 @@ void pic_int_handler(u32 vector)
 {
     pic_send_eoi(vector);
     u32 irq = vector - M_INTS_START;
-    if (pic_table[irq] == NULL) {
+    if (irq >= ARRAY_SIZE(pic_table)) {
+        panic("vector too big %d, sizeof pic_table=%d\n", irq,  ARRAY_SIZE(pic_table));
+    }
+    else if (pic_table[irq] == NULL) {
         DEBUGK("pic default func called, vector is %u, counter is %u\n", vector, counter++);
     } else {
-        pic_table[irq]();
+        pic_table[irq](irq);
     }
 }
 
@@ -70,7 +73,7 @@ void pic_int_init(void)
 void pic_set_interrupt_handler(u32 irq, pic_handler_t handler)
 {
     
-    assert(irq >= 0 && irq < (PIC_INT_VEC_END - PIC_INT_VEC_START));
+    assert(irq >= 0 && irq < (S_INTS_END - PIC_INT_VEC_START));
     if (pic_table[irq] != NULL) {
         panic("same irq %d assigned\n", irq);
     }
@@ -79,7 +82,7 @@ void pic_set_interrupt_handler(u32 irq, pic_handler_t handler)
 
 void pic_set_interrupt(u32 irq, bool enable)
 {
-    assert(irq >= 0 && irq < (PIC_INT_VEC_END - PIC_INT_VEC_START));
+    assert(irq >= 0 && irq < (S_INTS_END - PIC_INT_VEC_START));
     u16 port;
     u32 n = irq + M_INTS_START;
     bool cascade = false; // need to open cascade irq when irq >= 8

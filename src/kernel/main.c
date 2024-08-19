@@ -4,7 +4,7 @@ extern void interrupt_init();
 // extern void hang();
 extern void task_init();
 extern void clock_init();
-// extern void time_init(void);
+extern void time_init(void);
 // extern void rtc_init(void);
 extern void mem_map_init();
 extern void kernel_mm_init(void);

@@ -390,6 +390,6 @@ void keyboard_init(void)
     lock_init(&lock);
     fifo_init(&fifo, buf, BUFFER_SIZE);
     waiter = NULL;
-    pic_set_interrupt_handler(IRQ_KEYBOARD, keyboard_handler);
+    pic_set_interrupt_handler(IRQ_KEYBOARD,  (pic_handler_t)keyboard_handler);
     pic_set_interrupt(IRQ_KEYBOARD, true);
 }

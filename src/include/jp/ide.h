@@ -2,7 +2,7 @@
 
 #include <jp/types.h>
 #include <jp/mutex.h>
-
+#include <jp/task.h>
 // ata总线，28位lba模式，最多有四个ide磁盘
 
 #define SECTOR_SIZE 512 // 扇区大小
@@ -27,7 +27,10 @@ typedef struct ide_ctrl_t
     u16 iobase;                    // IO 寄存器基址
     ide_disk_t disks[IDE_DISK_NR]; // 磁盘
     ide_disk_t *active;            // 当前选择的磁盘
+    task_t *task;
 } ide_ctrl_t;
+
+extern ide_ctrl_t controllers[IDE_CTRL_NR];
 void ide_init(void);
 int ide_pio_read(ide_disk_t *disk, void *buf, u8 count, u32 lba);
 int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba);
