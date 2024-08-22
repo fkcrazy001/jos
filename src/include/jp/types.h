@@ -44,4 +44,8 @@ typedef enum {
     stderr,
 } std_fd_e;
 
+#define CONCAT(x, y) x##y
+#define RESERVED_TOKEN(x, y) CONCAT(x, y)
+#define RESERVED RESERVED_TOKEN(reserved, __LINE__)
+
 #endif

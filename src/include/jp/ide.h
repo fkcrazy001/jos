@@ -17,6 +17,10 @@ typedef struct ide_disk_t
     struct ide_ctrl_t *ctrl; // 控制器指针
     u8 selector;             // 磁盘选择
     bool master;             // 主盘
+    u32 total_lba;    // 可用扇区数目
+    u32 cylinders; // 柱面数？
+    u32 heads; // 磁头数
+    u32 sectors; // 扇区数
 } ide_disk_t;
 
 // IDE 控制器
@@ -28,6 +32,7 @@ typedef struct ide_ctrl_t
     ide_disk_t disks[IDE_DISK_NR]; // 磁盘
     ide_disk_t *active;            // 当前选择的磁盘
     task_t *task;
+    u8 control; // 控制字节
 } ide_ctrl_t;
 
 extern ide_ctrl_t controllers[IDE_CTRL_NR];

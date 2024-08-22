@@ -88,65 +88,51 @@ $(BUILD)/master.img: $(BUILD)/boot/boot.bin \
 	test -n "$$(find $(BUILD)/system.bin -size -100k)"
 	dd if=$(BUILD)/system.bin of=$@ bs=512 count=200 seek=10 conv=notrunc
 
-$(BUILD)/kernel.iso: $(BUILD)/kernel.bin $(SRC)/utils/grub.cfg
-# kernel.bin 需要合法
-	grub-file --is-x86-multiboot2 $<
-# 创建iso目录
-	mkdir -p $(BUILD)/iso/boot/grub
-# 拷贝内核文件
-	cp $< $(BUILD)/iso/boot
-# 拷贝grub配置文件
-	cp $(SRC)/utils/grub.cfg $(BUILD)/iso/boot/grub
-# 生成iso文件
-	grub-mkrescue -o $@ $(BUILD)/iso
+$(BUILD)/slave.img:
+	yes | bximage -q -hd=32 -func=create -sectsize=512 -imgmode=flat $@
 
+IMAGES:= $(BUILD)/master.img $(BUILD)/slave.img
 
-test:$(BUILD)/master.img
+image: $(IMAGES)
+
+test: $(IMAGES)
 
 .PHONY: clean
 clean:
 	@rm -rf $(BUILD)
 
 .PHONY: bochs
-bochs:$(BUILD)/master.img
+bochs:$(IMAGES)
 	bochs -q -f ../bochs/bochsrc
 
 .PHONY: bochsg
-bochsg:$(BUILD)/master.img
+bochsg:$(IMAGES)
 	bochs-gdb -q -f ../bochs/bochsrc.gdb
 
-.PHONY: bochsb
-bochsb:$(BUILD)/kernel.iso
-	bochs -q -f ../bochs/bochsrc.grub -unlock
+QEMU:= qemu-system-i386 #i386
+QEMU+= -m 32M  # 32M mm
+QEMU+= -audiodev pa,id=hda # 音频设备 
+QEMU+= -machine pcspk-audiodev=hda  # pc speaker设备
+QEMU+= -rtc base=localtime  #设备本地时间
+QEMU+= -drive file=$(BUILD)/master.img,if=ide,index=0,media=disk,format=raw #主硬盘
+QEMU+= -drive file=$(BUILD)/slave.img,if=ide,index=1,media=disk,format=raw # 从硬盘
 
-QEMU:= qemu-system-i386 \
-	-m 32M \
-	-audiodev pa,id=hda \
-	-machine pcspk-audiodev=hda \
-	-rtc base=localtime \
-
-QEMU_DISK:=-boot c \
-	-drive file=$(BUILD)/master.img,if=ide,index=0,media=disk,format=raw \
-
-QEMU_CDROM:=-boot d \
-	-drive file=$(BUILD)/kernel.iso,media=cdrom \
+QEMU_DISK:=-boot c
 
 QEMU_DEBUG:= -s -S
 
 .PHONY: qemu
-qemu:$(BUILD)/master.img
+qemu:$(IMAGES)
 	$(QEMU) $(QEMU_DISK)
 
 .PHONY: qemug
-qemug:$(BUILD)/master.img
+qemug:$(IMAGES)
 	$(QEMU) $(QEMU_DISK) $(QEMU_DEBUG)
-
-.PHONY: qemub
-qemub:$(BUILD)/kernel.iso
-	$(QEMU) $(QEMU_CDROM) \
-	$(QEMU_DEBUG)
 
 $(BUILD)/master.vmdk:$(BUILD)/master.img
 	qemu-img convert -pO vmdk $< $@
 .PHONY: vmdk
 vmdk: $(BUILD)/master.vmdk
+
+# open when using iso
+# include cdrom.mk
