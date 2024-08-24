@@ -80,6 +80,7 @@ $(BUILD)/master.img: $(BUILD)/boot/boot.bin \
 					$(BUILD)/boot/loader.bin \
 					$(BUILD)/system.bin \
 					$(BUILD)/system.map \
+					$(SRC)/utils/master.sfdisk \
 					
 	yes | bximage -q -hd=16 -func=create -sectsize=512 -imgmode=flat $@
 	dd if=$(BUILD)/boot/boot.bin of=$@ bs=512 count=1 conv=notrunc
@@ -87,6 +88,9 @@ $(BUILD)/master.img: $(BUILD)/boot/boot.bin \
 # system.bin需要小于100k，否则  count = size / 0.5k 就放不下了
 	test -n "$$(find $(BUILD)/system.bin -size -100k)"
 	dd if=$(BUILD)/system.bin of=$@ bs=512 count=200 seek=10 conv=notrunc
+
+# 使用分区
+	sfdisk $@ < $(SRC)/utils/master.sfdisk
 
 $(BUILD)/slave.img:
 	yes | bximage -q -hd=32 -func=create -sectsize=512 -imgmode=flat $@

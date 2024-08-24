@@ -10,10 +10,23 @@
 #define IDE_CTRL_NR 2 // 控制器数量，固定为 2
 #define IDE_DISK_NR 2 // 每个控制器可挂磁盘数量，固定为 2
 
+#define PARTITION_NR 4
+
+struct ide_disk;
+
+typedef struct ide_part {
+    char name[8]; // partition name 
+    struct ide_disk *disk;
+    u32 filesystem;
+    u32 start;
+    u32 count;
+}ide_part_t;
+
 // IDE 磁盘, ata总线
-typedef struct ide_disk_t
+typedef struct ide_disk
 {
     char name[8];            // 磁盘名称
+    struct ide_part part[PARTITION_NR]; // 分区
     struct ide_ctrl_t *ctrl; // 控制器指针
     u8 selector;             // 磁盘选择
     bool master;             // 主盘
@@ -26,7 +39,7 @@ typedef struct ide_disk_t
 // IDE 控制器
 typedef struct ide_ctrl_t
 {
-    char name[8];                  // 控制器名称
+    char name[8];                  // 控制器名称 
     lock_t lock;                   // 控制器锁
     u16 iobase;                    // IO 寄存器基址
     ide_disk_t disks[IDE_DISK_NR]; // 磁盘

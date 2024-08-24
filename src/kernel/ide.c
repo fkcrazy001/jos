@@ -68,7 +68,7 @@
 #define IDE_LBA_MASTER 0b11100000 // 主盘 LBA
 #define IDE_LBA_SLAVE 0b11110000  // 从盘 LBA
 
-typedef struct ide_params_t
+typedef struct ide_params
 {
     u16 config;                 // 0 General configuration bits
     u16 cylinders;              // 01 cylinders
@@ -103,6 +103,31 @@ typedef struct ide_params_t
     u16 RESERVED[254 - 223];    // 254
     u16 integrity;              // 校验和
 } _packed ide_params_t;
+
+typedef struct partition_info {
+    u8 bootable; // 0: none-bootable , 0x80 bootable
+#define BOOTABLE 0x80
+    u8 start_head;
+    u16 start_secotr:6,
+        start_cylinder:10;
+    u8  filesystem; // filesystem type
+// ref https://www.win.tue.nl/~aeb/partitions/partition_types-1.html
+#define PART_FS_FAT12 1
+#define PART_FS_EXTENDED 5
+#define PART_FS_MINIX 0x80
+#define PART_FS_LINUX 0x83
+    u8  end_head;
+    u16 end_sector:6,
+        end_cylinder:10;
+    u32 start; // start lba of disk
+    u32 count; // number of this partition
+}_packed partition_info_t;
+
+typedef struct boot_sector {
+    u8 code[0x1BE];
+    partition_info_t part[PARTITION_NR];
+    u16 verifycode; // 0x55aa
+}_packed boot_sector_t;
 
 ide_ctrl_t controllers[IDE_CTRL_NR];
 
@@ -331,6 +356,17 @@ int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
     return 0;
 }
 
+int ide_pio_part_read(ide_part_t *p, void *buf, u8 count, u32 lba)
+{
+    return ide_pio_read(p->disk, buf, count, p->start + lba);
+}
+
+int ide_pio_part_write(ide_part_t *p, void *buf, u8 count, u32 lba)
+{
+    return ide_pio_write(p->disk, buf, count, p->start + lba);
+}
+
+
 static u32 ide_identify(ide_disk_t *disk, u16 *buf)
 {
     DEBUGK("identifing disk %s...\n", disk->name);
@@ -374,6 +410,56 @@ out:
     return ret;
 }
 
+static void ide_partition_init(ide_disk_t* disk, void *buf)
+{
+    if (!disk->total_lba) {
+        return; // not an available disk
+    }
+    int err = ide_pio_read(disk, buf, 1, 0); // first sector
+    if (err) {
+        WARNK("failed reading first sector of %s!!!\n", disk->name);
+        return;
+    }
+    boot_sector_t *bs = (boot_sector_t*)buf;
+    // assert(bs->verifycode == 0xaa55);
+    for (size_t i = 0; i < PARTITION_NR; ++i) {
+        partition_info_t *pi = bs->part + i;
+        ide_part_t *p = disk->part + i;
+        if (!pi->count) {
+            DEBUGK("%d part of disk %s not a valid partition\n", i, disk->name);
+            continue;
+        }
+        sprintf(p->name, "%s%d", disk->name, i+1);
+        p->disk = disk;
+        p->filesystem = pi->filesystem;
+        p->count = pi->count;
+        p->start = pi->start;
+        DEBUGK("part %s \n", p->name);
+        DEBUGK("    bootable %d\n", pi->bootable == BOOTABLE);
+        DEBUGK("    start %d\n", pi->start);
+        DEBUGK("    count %d\n", pi->count);
+        DEBUGK("    filesystem 0x%x\n", pi->filesystem);
+
+        if (pi->filesystem == PART_FS_EXTENDED) {
+            WARNK("extended partition fs not support!!!\n");
+            void *ebuf = (void*)((char*)buf + SECTOR_SIZE);
+            ide_pio_part_read(p, ebuf, 1, 0);
+            boot_sector_t *ebs = ebuf;
+            for (size_t j = 0; j < PARTITION_NR; ++j) {
+                partition_info_t *epi = ebs->part + j;
+                if (!epi->count) {
+                    DEBUGK("%d part of extended partition on %s not a valid partition\n", i, disk->name);
+                    continue;
+                }
+                DEBUGK("    bootable %d\n", epi->bootable == BOOTABLE);
+                DEBUGK("    start %d\n", epi->start);
+                DEBUGK("    count %d\n", epi->count);
+                DEBUGK("    filesystem 0x%x\n", epi->filesystem);
+            }
+        }
+    }
+}
+
 static void ide_ctrl_init()
 {
     u16 *buf = (u16*)alloc_kpage(1);
@@ -413,7 +499,7 @@ static void ide_ctrl_init()
                 disk->selector = IDE_LBA_MASTER;
             }
             ide_identify(disk, buf);
-            ide_identify(disk, buf);
+            ide_partition_init(disk, buf);
         }
     }
     free_kpage((u32)buf, 1);
