@@ -2,6 +2,7 @@
 #include <jp/io.h>
 #include <jp/string.h>
 #include <jp/interrupt.h>
+#include <jp/device.h>
 
 #define CRT_ADDR_REG 0x3D4 // CRT(6845)索引寄存器
 #define CRT_DATA_REG 0x3D5 // CRT(6845)数据寄存器
@@ -155,7 +156,7 @@ static void cmd_del(void)
     //
 }
 extern void start_beep(void);
-int32_t console_write(char* buf, u32 count)
+int32_t console_write(void* priv, char* buf, u32 count)
 {
     bool intr = interrupt_disable();
     char ch;
@@ -217,5 +218,9 @@ int32_t console_write(char* buf, u32 count)
 void console_init(void)
 {
     console_clear();
-    //screen = 80 *2 + MEM_BASE;
+    device_register(
+        DEV_CHAR, DEV_CONSOLE, 
+        NULL, "console", DEV_NULL,
+        NULL, NULL, (f_write)console_write
+    );
 }

@@ -5,6 +5,5 @@
 
 void console_init(void);
 void console_clear(void);
-int32_t console_write(char* buf, u32 count);
 
 #endif

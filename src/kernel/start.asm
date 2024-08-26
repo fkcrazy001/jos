@@ -21,6 +21,7 @@ extern gdt_init
 extern mem_init
 extern kernel_init
 extern gdt_ptr
+extern device_init
 ; multiboot2 setting s when invoke _start
 ; eax = 0x36d76289
 ; ebx = (multiboot2*)addr;
@@ -40,6 +41,7 @@ _start:
     mov byte [0xb8000], 'K'
     push ebx ; p ards_counts
     push eax ; magic
+    call device_init
     call console_init ; hope stack won't overflow
     ; xchg bx, bx
     call gdt_init

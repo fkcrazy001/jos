@@ -4,6 +4,7 @@
 #include <jp/debug.h>
 #include <jp/mutex.h>
 #include <jp/fifo.h>
+#include <jp/device.h>
 
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_CTRL_PORT 0x64
@@ -363,7 +364,7 @@ static void keyboard_handler(void)
     }
 }
 
-u32 keyboard_read(char *buf, u32 count)
+int keyboard_read(void *priv, char *buf, u32 count)
 {
     lock_up(&lock);
     int nr = 0;
@@ -392,4 +393,10 @@ void keyboard_init(void)
     waiter = NULL;
     pic_set_interrupt_handler(IRQ_KEYBOARD,  (pic_handler_t)keyboard_handler);
     pic_set_interrupt(IRQ_KEYBOARD, true);
+
+    device_register(
+        DEV_CHAR, DEV_KEYBOARD, 
+        NULL, "keyboard", DEV_NULL,
+        NULL, (f_read)keyboard_read, NULL
+    );
 }

@@ -5,6 +5,7 @@
 #include <jp/task.h>
 #include <jp/console.h>
 #include <jp/memory.h>
+#include <jp/device.h>
 
 #define SYSCALL_SIZE 256
 // args above p3 is common args pushed by syscall_handler
@@ -28,14 +29,21 @@ static task_t *task = NULL;
 
 static u32 sys_test(void)
 {
+    device_t *dev = device_find(DEV_KEYBOARD, 0);
+    char ch;
+    device_read(dev->dev, &ch, 1, 0, 0);
+    dev = device_find(DEV_CONSOLE, 0);
+    device_write(dev->dev, &ch, 1, 0, 0);
     return 255;
 }
+
+extern int console_write();
 
 static int32_t sys_write(u32 fd, u32 buf, u32 len)
 {
     // @todo buf is user va, transfer to pa
     if (fd == stdout || fd == stderr) {
-        return console_write((char*)buf, len);
+        return console_write(0, (char*)buf, len);
     }
     panic("write!!!");
     return -1;

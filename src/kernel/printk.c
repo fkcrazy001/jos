@@ -4,6 +4,8 @@
 
 static char buf[1024];
 
+extern int console_write();
+
 int printk(const char *fmt, ...)
 {
     va_list args;
@@ -15,7 +17,7 @@ int printk(const char *fmt, ...)
 
     va_end(args);
 
-    console_write(buf, i);
+    console_write(NULL, buf, i);
 
     return i;
 }
