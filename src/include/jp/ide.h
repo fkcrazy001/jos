@@ -3,6 +3,7 @@
 #include <jp/types.h>
 #include <jp/mutex.h>
 #include <jp/task.h>
+#include <jp/list.h>
 // ata总线，28位lba模式，最多有四个ide磁盘
 
 #define SECTOR_SIZE 512 // 扇区大小
@@ -34,6 +35,7 @@ typedef struct ide_disk
     u32 cylinders; // 柱面数？
     u32 heads; // 磁头数
     u32 sectors; // 扇区数
+    list_node_t rwlist;
 } ide_disk_t;
 
 // IDE 控制器

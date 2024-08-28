@@ -4,10 +4,11 @@
 #include <jp/stdarg.h>
 #include <jp/stdio.h>
 
+int debug = 0;
 static void spin(char *name) 
 {
     printk("spinning in %s...\n", name);
-    while(true);
+    while(!debug);
 }
 
 void assertion_failure(char *exp, char *file, const char *func, int line)
@@ -18,7 +19,7 @@ void assertion_failure(char *exp, char *file, const char *func, int line)
             "--> line: %d \n",
             exp, file, func, line);
     spin("assertion_failure()");
-    asm volatile("ud2"); // never run to here
+    // asm volatile("ud2"); // never run to here
 }
 static char buf[1024];
 void panic(const char *fmt, ...)

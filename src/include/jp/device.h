@@ -1,7 +1,7 @@
 #pragma once
 
 #include <jp/types.h>
-#include <jp/list.h>
+
 #define DEV_MAX_NAMELEN 16
 
 typedef uint32_t dev_t;
@@ -35,8 +35,6 @@ typedef struct device {
     dev_t dev;
     dev_t parent;
     void *dev_priv; // pointer to this dev
-    // 电梯调度算法，父子设备共享一个 @todo: 这里应该改成一个调度算法的callback，具体调度实现由各个子模块实现
-    list_node_t *sche_list_head;
     f_ioctl ioctl;
     f_read read;
     f_write write;

@@ -9,6 +9,7 @@
 #include <jp/assert.h>
 #include <jp/debug.h>
 #include <jp/device.h>
+#include <jp/arena.h>
 
 // ref https://wiki.osdev.org/PCI_IDE_Controller
 // https://wiki.osdev.org/ATA_PIO_Mode
@@ -284,12 +285,57 @@ static void ide_reset_controller(ide_ctrl_t *ctrl)
     ide_busy_wait(ctrl, IDE_SR_NULL);
 }
 
+struct disk_rw_handler {
+    task_t *task;
+    u32 lba;
+    bool write;
+    list_node_t node;
+};
+
+
+// must call disk_seek_next
+static struct disk_rw_handler* disk_rw_handler_req(ide_disk_t *disk, u32 lba, bool write)
+{
+    if (current->state != TASK_RUNNING)
+        return NULL;
+    bool empty = list_empty(&disk->rwlist);
+    struct disk_rw_handler *req = kmalloc(sizeof(*req));
+    req->write = write;
+    req->task = current;
+    req->lba = lba;
+    
+    list_add(&disk->rwlist, &req->node);
+
+    if (!empty) {
+        assert(current->state == TASK_RUNNING);
+        task_block(req->task, NULL, TASK_BLOCKED);
+    }
+    return req;
+}
+
+static void disk_seek_next(ide_disk_t* disk, struct disk_rw_handler* handler)
+{
+    if (handler == NULL) // just for bootup reading use
+        return;
+    list_del(&handler->node);
+    kfree(handler);
+
+    if (!list_empty(&disk->rwlist)) {
+        task_t *next = container_of(struct disk_rw_handler, node, disk->rwlist.next)->task;
+        assert(next->magic == J_MAGIC);
+        task_unblock(next);
+    }
+}
+
 // PIO 方式读取磁盘
 int ide_pio_read(ide_disk_t *disk, void *buf, u8 count, u32 lba)
 {
     assert(count > 0);
 
     ide_ctrl_t *ctrl = disk->ctrl;
+
+    // disk do-scheduler first
+    struct disk_rw_handler* handler = disk_rw_handler_req(disk, lba, 0);
 
     lock_up(&ctrl->lock);
 
@@ -317,6 +363,7 @@ int ide_pio_read(ide_disk_t *disk, void *buf, u8 count, u32 lba)
     }
 
     lock_down(&ctrl->lock);
+    disk_seek_next(disk, handler);
     return 0;
 }
 
@@ -326,7 +373,7 @@ int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
     assert(count > 0 && lba < disk->total_lba);
 
     ide_ctrl_t *ctrl = disk->ctrl;
-
+    struct disk_rw_handler* handler = disk_rw_handler_req(disk, lba, 1);
     lock_up(&ctrl->lock);
     assert(!get_interrupt_state());
     DEBUGK("write disk %s lba 0x%x\n", disk->name, lba);
@@ -352,6 +399,7 @@ int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
     }
 
     lock_down(&ctrl->lock);
+    disk_seek_next(disk, handler);
     return 0;
 }
 
@@ -540,6 +588,7 @@ static void ide_dev_init(void)
             ide_disk_t *disk = &ctrl->disks[didx];
             if (!disk->total_lba)
                 continue;
+            list_init(&disk->rwlist);
             dev_t dev =  device_register(DEV_BLOCK, DEV_DISK,
                 disk, disk->name, DEV_NULL,
                 disk_ioctl, ide_pio_read, ide_pio_write);
