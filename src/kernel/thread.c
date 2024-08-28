@@ -31,8 +31,8 @@ void user_init_thread(void)
     {
         // @todo user cant access kernel mm
         // *(char*)0xB8000 = 'b';
-        // sleep(1000);
-        test();
+        sleep(1000);
+        // test();
     }
 }
 
@@ -46,6 +46,7 @@ void test_thread(void)
 {
     set_interrupt_state(true);
     u32 counter = 0;
+    test();
     while (true)
     {
         // lock_up(&lock);

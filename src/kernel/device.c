@@ -2,6 +2,9 @@
 #include <jp/string.h>
 #include <jp/assert.h>
 #include <jp/debug.h>
+#include <jp/arena.h>
+#include <jp/task.h>
+
 #define DEVICE_NR 64
 
 static device_t devices[DEVICE_NR];
@@ -13,6 +16,7 @@ void device_init(void)
         memset(dev, 0, sizeof(*dev));
         dev->dev = i;
         dev->type = DEV_NULL;
+        dev->sche_list_head = NULL;
         strncpy(dev->name, "null", sizeof(dev->name));
     }
 }
@@ -44,6 +48,15 @@ dev_t device_register(
     idle->ioctl = ioctl;
     idle->read = read;
     idle->write = write;
+    // @todo schedule should done in ide.c
+    if (type == DEV_BLOCK) {
+        if(parent == DEV_NULL) {
+            idle->sche_list_head = kmalloc(sizeof(*idle->sche_list_head));
+            list_init(idle->sche_list_head);
+        } else {
+            idle->sche_list_head = device_get(parent)->sche_list_head;
+        }
+    }
     return idle->dev;
 }
 
@@ -95,4 +108,65 @@ int device_write(dev_t dev, void* buf, size_t count, u32 offset, int flags)
     }
     WARNK("write of %s is unimplemented\n", device->name);
     return -1;
+}
+
+struct block_request {
+    dev_t dev;
+    void* buf;
+    size_t count;
+    u32 offset;
+    int flags;
+    u32 type;
+    task_t *task;
+    list_node_t node;
+};
+
+static void do_request(struct block_request *req)
+{
+    switch (req->type)
+    {
+    case REQ_READ:
+        device_read(req->dev, req->buf, req->count, req->offset, req->flags);
+        break;
+    case REQ_WRITE:
+        device_write(req->dev, req->buf, req->count, req->offset, req->flags);
+        break;
+    default:
+        panic("invalid type %d\n", req->type);
+        break;
+    }
+}
+
+void device_requset(dev_t dev, void* buf, size_t count, u32 offset, int flags, u32 type)
+{
+    device_t *device = device_get(dev);
+    assert(device->type == DEV_BLOCK);
+    struct block_request *req = kmalloc(sizeof(*req));
+
+    req->dev = dev;
+    req->buf = buf;
+    req->count = count;
+    req->offset = offset;
+    req->flags = flags;
+    req->type = type;
+
+    // 这里由于要做调度，不能用默认的lock——up/down，因为后者是fifo调度
+
+    bool empty = list_empty(device->sche_list_head);
+
+    // fifo now
+    list_add(device->sche_list_head, &req->node);
+
+    if (!empty) {
+        req->task = current;
+        task_block(req->task, NULL, TASK_BLOCKED);
+    }
+    do_request(req);
+    list_del(&req->node);
+    kfree(req);
+    if (!list_empty(device->sche_list_head)) {
+        task_t *next = container_of(struct block_request, node, device->sche_list_head->next)->task;
+        assert(next->magic == J_MAGIC);
+        task_unblock(next);
+    }
 }

@@ -1,6 +1,8 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+#include <jp/joker.h>
+
 #define EOF   -1
 #define EOS   '\0'
 #define NULL  (void*)0

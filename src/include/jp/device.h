@@ -1,7 +1,7 @@
 #pragma once
 
 #include <jp/types.h>
-
+#include <jp/list.h>
 #define DEV_MAX_NAMELEN 16
 
 typedef uint32_t dev_t;
@@ -15,6 +15,13 @@ enum device_type {
 enum device_subtype {
     DEV_CONSOLE,
     DEV_KEYBOARD,
+    DEV_DISK,
+    DEV_PART,
+};
+
+enum device_cmd {
+    DEV_CMD_SECTOR_START = 1,
+    DEV_CMD_SECTOR_COUNT = 2,
 };
 
 typedef int (*f_ioctl)(void* dev_priv, int cmd, void *args, int flags);
@@ -28,6 +35,8 @@ typedef struct device {
     dev_t dev;
     dev_t parent;
     void *dev_priv; // pointer to this dev
+    // 电梯调度算法，父子设备共享一个 @todo: 这里应该改成一个调度算法的callback，具体调度实现由各个子模块实现
+    list_node_t *sche_list_head;
     f_ioctl ioctl;
     f_read read;
     f_write write;
@@ -47,6 +56,16 @@ device_t *device_get(dev_t dev);
 
 int device_ioctl(dev_t dev, int cmd, void *args, int flags);
 
+// @todo device_read/write -> device_requset
+
 int device_read(dev_t dev, void* buf, size_t count, u32 offset, int flags);
 
 int device_write(dev_t dev, void* buf, size_t count, u32 offset, int flags);
+
+enum {
+    REQ_READ = 0,
+    REQ_WRITE,
+};
+
+// request with schedule
+void device_requset(dev_t dev, void* buf, size_t count, u32 offset, int flags, u32 type);

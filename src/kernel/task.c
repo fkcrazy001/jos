@@ -122,8 +122,8 @@ void task_block(task_t *task, list_node_t *blist, task_state_e state)
 void task_unblock(task_t *task)
 {
     assert(!get_interrupt_state()); // in disable state
+    assert(!node_is_init(&task->node));
     list_del(&task->node);
-    assert(node_is_init(&task->node));
     task->state = TASK_READY;
 }
 
@@ -402,5 +402,7 @@ void task_init(void)
     task_setup();
     idle_task = task_create(idle_thread, "idle", 1, KERNEL_USER); // lowest priority
     assert(task_create(init_thread, "initd", 5, NORMAL_USER));
-    assert(task_create(test_thread, "test", 5, NORMAL_USER));
+    assert(task_create(test_thread, "test1", 5, NORMAL_USER));
+    assert(task_create(test_thread, "test2", 5, NORMAL_USER));
+    assert(task_create(test_thread, "test3", 5, NORMAL_USER));
 }

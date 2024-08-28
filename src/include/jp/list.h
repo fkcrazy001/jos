@@ -4,7 +4,7 @@
 #include <jp/assert.h>
 
 #define member_offset(type, member) ((u32)&(((type*)0)->member))
-#define container_of(type, member, ptr) (type *)((u32)(ptr)-member_offset(type, member))
+#define container_of(type, member, ptr) ((type *)((u32)(ptr)-member_offset(type, member)))
 
 #define list_for_each(pos, head, member) for(pos=container_of(typeof(*(pos)), member, (head)->next); \
                                                 &((pos)->member) !=(head); \

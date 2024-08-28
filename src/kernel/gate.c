@@ -26,14 +26,14 @@ static u32 sys_default(void)
 }
 
 static task_t *task = NULL;
-
+#include <jp/string.h>
 static u32 sys_test(void)
 {
-    device_t *dev = device_find(DEV_KEYBOARD, 0);
-    char ch;
-    device_read(dev->dev, &ch, 1, 0, 0);
-    dev = device_find(DEV_CONSOLE, 0);
-    device_write(dev->dev, &ch, 1, 0, 0);
+    void *buf = (void*)alloc_kpage(1);
+    device_t *dev = device_find(DEV_PART, 0);
+    memset(buf, current->pid, 512);
+    device_requset(dev->dev, buf, 1, current->pid, 0, REQ_WRITE);
+    free_kpage((u32)buf, 1);
     return 255;
 }
 

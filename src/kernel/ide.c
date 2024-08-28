@@ -8,7 +8,7 @@
 #include <jp/string.h>
 #include <jp/assert.h>
 #include <jp/debug.h>
-
+#include <jp/device.h>
 
 // ref https://wiki.osdev.org/PCI_IDE_Controller
 // https://wiki.osdev.org/ATA_PIO_Mode
@@ -323,13 +323,12 @@ int ide_pio_read(ide_disk_t *disk, void *buf, u8 count, u32 lba)
 // PIO 方式写磁盘
 int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
 {
-    assert(count > 0);
+    assert(count > 0 && lba < disk->total_lba);
 
     ide_ctrl_t *ctrl = disk->ctrl;
 
     lock_up(&ctrl->lock);
     assert(!get_interrupt_state());
-
     DEBUGK("write disk %s lba 0x%x\n", disk->name, lba);
 
     // 选择磁盘
@@ -505,8 +504,60 @@ static void ide_ctrl_init()
     free_kpage((u32)buf, 1);
 }
 
+static int disk_ioctl(ide_disk_t* disk, int cmd, void *args, int flags)
+{
+    switch (cmd)
+    {
+    case DEV_CMD_SECTOR_START:
+        return 0;
+    case DEV_CMD_SECTOR_COUNT:
+        return disk->total_lba;
+    default:
+        break;
+    }
+    panic("cmd %d not implemented\n", cmd);
+}
+
+static int part_ioctl(ide_part_t* part, int cmd, void *args, int flags)
+{
+    switch (cmd)
+    {
+    case DEV_CMD_SECTOR_START:
+        return part->start;
+    case DEV_CMD_SECTOR_COUNT:
+        return part->count;
+    default:
+        break;
+    }
+    panic("cmd %d not implemented\n", cmd);
+}
+
+static void ide_dev_init(void)
+{
+    for (size_t cidx = 0; cidx < IDE_CTRL_NR; cidx++){
+        ide_ctrl_t *ctrl = &controllers[cidx];
+        for (size_t didx = 0; didx < IDE_DISK_NR; didx++) {
+            ide_disk_t *disk = &ctrl->disks[didx];
+            if (!disk->total_lba)
+                continue;
+            dev_t dev =  device_register(DEV_BLOCK, DEV_DISK,
+                disk, disk->name, DEV_NULL,
+                disk_ioctl, ide_pio_read, ide_pio_write);
+            for (size_t t = 0; t < PARTITION_NR; ++t) {
+                ide_part_t *part = &disk->part[t];
+                if(!part->count)
+                    continue;
+                device_register(DEV_BLOCK, DEV_PART,
+                    part, part->name, dev,
+                    part_ioctl, ide_pio_part_read, ide_pio_part_write);
+            }
+        }
+    }
+}
+
 void ide_init(void)
 {
     DEBUGK("ide init...\n");
     ide_ctrl_init();
+    ide_dev_init();
 }
