@@ -15,6 +15,8 @@
                                                         &((pos)->member) !=(head); \
                                                         pos=next, next = container_of(typeof(*(next)), member, (next)->member.next))
 
+typedef bool (*compare_t)(void *node, void* to_insert);
+
 typedef struct list_node {
     struct list_node *prev;
     struct list_node *next;

@@ -294,6 +294,7 @@ struct disk_rw_handler {
 
 
 // must call disk_seek_next
+// 电梯调度，防止某个进程被饿死
 static struct disk_rw_handler* disk_rw_handler_req(ide_disk_t *disk, u32 lba, bool write)
 {
     if (current->state != TASK_RUNNING)
@@ -304,7 +305,12 @@ static struct disk_rw_handler* disk_rw_handler_req(ide_disk_t *disk, u32 lba, bo
     req->task = current;
     req->lba = lba;
     
-    list_add(&disk->rwlist, &req->node);
+    struct disk_rw_handler *pos;
+    list_for_each(pos, &disk->rwlist, node) {
+        if (pos->lba > req->lba)
+            break;
+    }
+    list_insert_before(&pos->node, &req->node);
 
     if (!empty) {
         assert(current->state == TASK_RUNNING);
@@ -317,13 +323,28 @@ static void disk_seek_next(ide_disk_t* disk, struct disk_rw_handler* handler)
 {
     if (handler == NULL) // just for bootup reading use
         return;
+    list_node_t current_node;
+    memcpy(&current_node, &handler->node, sizeof(list_node_t));
     list_del(&handler->node);
     kfree(handler);
-
     if (!list_empty(&disk->rwlist)) {
-        task_t *next = container_of(struct disk_rw_handler, node, disk->rwlist.next)->task;
+        task_t *next = NULL;
+        if (disk->going_up) {
+            next = container_of(struct disk_rw_handler, node, current_node.next)->task;
+        } else {
+            next = container_of(struct disk_rw_handler, node, current_node.prev)->task;
+        }
         assert(next->magic == J_MAGIC);
         task_unblock(next);
+    } else {
+        if (disk->going_up && current_node.next == &disk->rwlist) {
+            DEBUGK("disk scan dir changed up->down\n");
+            disk->going_up = false;
+        }
+        if (!disk->going_up && current_node.prev == &disk->rwlist) {
+            DEBUGK("disk scan dir changed down->up\n");
+            disk->going_up = true;
+        }
     }
 }
 
@@ -396,6 +417,7 @@ int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
         ide_pio_write_sector(disk, (u16 *)offset);
         outb(ctrl->iobase + IDE_COMMAND, IDE_CMD_CACHE_FLUSH);
         ide_busy_async_wait(ctrl, IDE_SR_NULL);
+        task_sleep(100);
     }
 
     lock_down(&ctrl->lock);
@@ -589,6 +611,7 @@ static void ide_dev_init(void)
             if (!disk->total_lba)
                 continue;
             list_init(&disk->rwlist);
+            disk->going_up = true;
             dev_t dev =  device_register(DEV_BLOCK, DEV_DISK,
                 disk, disk->name, DEV_NULL,
                 disk_ioctl, ide_pio_read, ide_pio_write);

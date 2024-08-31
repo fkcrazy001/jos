@@ -36,6 +36,7 @@ typedef struct ide_disk
     u32 heads; // 磁头数
     u32 sectors; // 扇区数
     list_node_t rwlist;
+    bool going_up; // 电梯算法，0-top，top-0
 } ide_disk_t;
 
 // IDE 控制器
