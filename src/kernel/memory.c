@@ -35,13 +35,16 @@ u32 free_pages = 0;
 static u32 KERNEL_PAGE_TABLE[] = {
     0x2000,
     0x3000,
+    0x4000,
+    0x5000,
 };
 #define KERNEL_PTE_SIZE ARRAY_SIZE(KERNEL_PAGE_TABLE)
-#define KERNEL_MAP_BITS 0x4000
+#define KERNEL_MAP_BITS 0x6000
 // one page (4k) has 1024 entries, each entry can map a page(4k)
 // thus one page can manage 4M memory
-// 2 = ARRAY_SIZE(KERNEL_PAGE_TABLE)
-#define KPDE_SIZE (PAGE_SIZE * 1024 * 2)
+// 4 = ARRAY_SIZE(KERNEL_PAGE_TABLE)
+#define KERNEL_PAGE_TABLE_SZIE 4
+#define KPDE_SIZE (PAGE_SIZE * 1024 * KERNEL_PAGE_TABLE_SZIE)
 #if KERNEL_MEMORY_SIZE != KPDE_SIZE
 #error "KERNEL MEMORY SIZE != defined in kernel pde, can't map"
 #endif
@@ -124,10 +127,10 @@ void mem_map_init(void)
     for (size_t i = 0; i < start_page; ++i)
         page_info_array[i] = 1;
     DEBUGK("Total pages %d, free pages %d\n", total_pages, free_pages);
-    // kernel has 0-KERNEL_MEMORY_SIZE memory, managed by bitmap
-    static_assert((IDX(KERNEL_MEMORY_SIZE) - IDX(MEMORY_BASE)) % 8 == 0);
-    static_assert((IDX(KERNEL_MEMORY_SIZE) - IDX(MEMORY_BASE)) <= PAGE_SIZE);
-    bitmap_init(&kernel_map, (char*)KERNEL_MAP_BITS, (IDX(KERNEL_MEMORY_SIZE) - IDX(MEMORY_BASE))/BITLEN, IDX(MEMORY_BASE));
+    // kernel has 0-KERNEL_BUFFER_MEM memory, managed by bitmap
+    static_assert((IDX(KERNEL_BUFFER_MEM) - IDX(MEMORY_BASE)) % 8 == 0);
+    static_assert((IDX(KERNEL_BUFFER_MEM) - IDX(MEMORY_BASE)) <= PAGE_SIZE);
+    bitmap_init(&kernel_map, (char*)KERNEL_MAP_BITS, (IDX(KERNEL_BUFFER_MEM) - IDX(MEMORY_BASE))/BITLEN, IDX(MEMORY_BASE));
     bitmap_scan(&kernel_map, page_info_n);
 }
 
@@ -209,6 +212,7 @@ void kernel_mm_init(void)
     // BMB;
 
     int page_idx = 0;
+    static_assert(ARRAY_SIZE(KERNEL_PAGE_TABLE) == KERNEL_PAGE_TABLE_SZIE);
     for (int i = 0; i < ARRAY_SIZE(KERNEL_PAGE_TABLE); ++i) {
         page_entry_t *pte = (page_entry_t*)KERNEL_PAGE_TABLE[i];
         memset(pte, 0, PAGE_SIZE);

@@ -5,16 +5,26 @@
 
 #define PAGE_SIZE (1<<12)
 
+// pa/va: 0x000000 - 0xffffff: 内核专用内存
+#define KERNEL_MEMORY_SIZE 0x1000000
+
 // pa/va: 0 - 0xffff: 内核专用，用于操作显示屏，存放页表信息
 #define KERNEL_PAGE_DIR    0x1000
+
+// kernel  heap mem
+// 0x100000 - 0x7fffff
 #define MEMORY_BASE (0x100000) // 1M 可用内存开始的地方
 
-// pa/va: 0x10000 - 0x7ffff: 内核专用内存
-#define KERNEL_MEMORY_SIZE 0x800000
-// pa/va: 0x80000 - 0x7fffff: 用户空间
+// pa/va: 0x800000 - 0xbfffff kernel_disk_cache_buffer
+#define KERNEL_BUFFER_MEM 0x800000
+#define KERNEL_BUFFER_SIZE 0x400000
 
-// va
-// 126M - 128M: user stk 
+// pa/va: 0xc00000 - 0xffffff 
+#define KERNEL_RAMDISK_MEM (KERNEL_BUFFER_MEM + KERNEL_BUFFER_SIZE)
+#define KERNEL_RAMDISK_SIZE 0x400000
+
+// va: 0x1000000 - 126M: 用户空间
+// va: 126M - 128M: user stk 
 #define USER_STK_TOP 0x8000000
 #define USER_STK_MAX_SIZE 0x200000
 #define USER_STK_BOTTOM (USER_STK_TOP - USER_STK_MAX_SIZE)
