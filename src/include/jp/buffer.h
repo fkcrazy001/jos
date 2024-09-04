@@ -3,7 +3,6 @@
 // buffer stores harddisk buffer
 
 #include <jp/list.h>
-#include <jp/mutex.h>
 #include <jp/device.h>
 
 #define BLOCK_SIZE 1024
@@ -14,10 +13,10 @@ typedef struct buffer {
     void *data;
     dev_t dev;
     u32 block;
+    u32 pid;
     int count; // ref cnt
     list_node_t hnode;
     list_node_t rnode;
-    lock_t lock;
     bool dirty; // if this  is dirty
     bool valid; // if this 
 } buffer_t;

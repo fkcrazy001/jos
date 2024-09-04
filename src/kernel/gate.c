@@ -26,18 +26,15 @@ static u32 sys_default(void)
 }
 
 static task_t *task = NULL;
+#include <jp/buffer.h>
 #include <jp/string.h>
-static int read_sector[] = {1, 5, 2};
-static int read_idx=0;
 static u32 sys_test(void)
 {
-    void *buf = (void*)alloc_kpage(1);
     device_t *dev = device_find(DEV_PART, 0);
-    int sector =  read_sector[read_idx];
-    memset(buf, sector, 512);
-    read_idx = (read_idx+1)%ARRAY_SIZE(read_sector);
-    device_requset(dev->dev, buf, 1, sector, 0, REQ_WRITE);
-    free_kpage((u32)buf, 1);
+    buffer_t *buf = bread(dev->dev, 0);
+    memset((void*)((u32)buf->data+SECTOR_SIZE), 0x5a, SECTOR_SIZE);
+    buf->dirty = true;
+    brelease(buf);
     return 255;
 }
 

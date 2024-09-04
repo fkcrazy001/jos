@@ -417,7 +417,6 @@ int ide_pio_write(ide_disk_t *disk, void *buf, u8 count, u32 lba)
         ide_pio_write_sector(disk, (u16 *)offset);
         outb(ctrl->iobase + IDE_COMMAND, IDE_CMD_CACHE_FLUSH);
         ide_busy_async_wait(ctrl, IDE_SR_NULL);
-        task_sleep(100);
     }
 
     lock_down(&ctrl->lock);
