@@ -183,6 +183,9 @@ static void ide_handler(uint32_t vector)
     } else {
         panic("invalid hard disk vector %d\n", vector);
     }
+    // 读取常规状态寄存器，表示中断处理结束
+    u8 state = inb(ctrl->iobase + IDE_STATUS);
+    DEBUGK("harddisk interrupt vector %d state 0x%x\n", vector, state);
     if (ctrl->task) {
         task_unblock(ctrl->task);
         ctrl->task = NULL; //
