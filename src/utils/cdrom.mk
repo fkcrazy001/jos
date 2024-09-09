@@ -21,7 +21,7 @@ QEMU_CDROM:=-boot d
 .PHONY: qemub
 qemub:$(BUILD)/kernel.iso
 	$(QEMU) $(QEMU_CDROM) \
-	$(QEMU_DEBUG)
+	# $(QEMU_DEBUG)
 
 .PHONY: cdrom
 cdrom: $(BUILD)/kernel.iso $(IMAGES)
