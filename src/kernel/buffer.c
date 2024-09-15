@@ -34,6 +34,7 @@ union hash_key {
 
 static int hash(union hash_key *key)
 {
+    key->pid = 0; // pid 
     return (key->k[0] ^ key->k[1] ^ key->k[2]) & (HASH_TLB_SIZE-1);
 }
 
@@ -48,7 +49,11 @@ static buffer_t *hash_get(dev_t dev, u32 block, u32 pid)
     lock_up(&buffer_lock);
     buffer_t *pos, *tbuffer = NULL;
     list_for_each(pos, &buffer_hash_table[h], hnode) {
-        if (pos->pid == pid && pos->dev == dev && pos->block == block) {
+        if ( pos->dev == dev && pos->block == block
+        /*
+             && pos->pid == pid
+        */
+             ) {
             tbuffer = pos;
             break;
         }

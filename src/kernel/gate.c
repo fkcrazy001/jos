@@ -30,11 +30,11 @@ static task_t *task = NULL;
 #include <jp/string.h>
 static u32 sys_test(void)
 {
-    device_t *dev = device_find(DEV_PART, 0);
-    buffer_t *buf = bread(dev->dev, 0);
-    memset((void*)((u32)buf->data+SECTOR_SIZE), 0x5a, SECTOR_SIZE);
-    buf->dirty = true;
-    brelease(buf);
+    device_t *dev = device_find(DEV_KEYBOARD, 0);
+    char ch;
+    device_read(dev->dev, &ch, 1, 0, 0);
+    dev = device_find(DEV_CONSOLE, 0);
+    device_write(dev->dev, &ch, 1, 0, 0);
     return 255;
 }
 

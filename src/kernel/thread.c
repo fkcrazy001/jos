@@ -46,15 +46,10 @@ void test_thread(void)
 {
     set_interrupt_state(true);
     u32 counter = 0;
-    test();
     while (true)
     {
-        // lock_up(&lock);
-        // lock_up(&lock);
-        DEBUGK("task test %d, pid %d, ppid %d....\n", counter++, getpid(), getppid());
-        // lock_down(&lock);
-        // lock_down(&lock);
-        sleep(5000);
+        test();
+        sleep(10);
     }
     
 }
