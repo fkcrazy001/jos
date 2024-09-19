@@ -3,49 +3,83 @@
 #include <jp/buffer.h>
 #include <jp/string.h>
 
+#define SUPER_NR 16
+
+static super_block_t super_block_table[SUPER_NR];
+static super_block_t *root; // root super
+
+static super_block_t* get_free_super(void) {
+    for (size_t i = 0; i < SUPER_NR; ++i) {
+        super_block_t *sb = &super_block_table[i];
+        if (sb->dev == DEV_NULL)
+            return sb;
+    }
+    panic("no more superblocks");
+    return NULL;
+}
+
+super_block_t* get_super(dev_t dev)
+{
+    for (size_t i = 0; i < SUPER_NR; ++i) {
+        super_block_t *sb = &super_block_table[i];
+        if (sb->dev == dev)
+            return sb;
+    }
+    return NULL;
+}
+
+super_block_t* read_super(dev_t dev)
+{
+    super_block_t *sb = NULL;
+    sb = get_super(dev);
+    if (sb)
+        return sb;
+    sb = get_free_super();
+
+    // boot|superblock|imap|zmap|inode|
+
+    buffer_t *buf = bread(dev, 1); // block 1
+    sb->buf = buf;
+    sb->desc = (super_desc_t*)buf->data;
+    sb->dev = dev;
+
+    assert(sb->desc->magic == MINX1_MAGIC); // only support minix now
+
+    // inode map
+    u32 block = 2;
+    for(size_t i = 0; i < sb->desc->imap_blocks; ++i) {
+        assert(i < IMAP_MAX_NR);
+        if((sb->imaps[i] = bread(dev, block)))
+            block++;
+        else
+            break;
+    }
+    // znode map
+    for(size_t i = 0; i < sb->desc->zmap_blocks; ++i) {
+        assert(i < ZMAP_MAX_NR);
+        if((sb->zmaps[i] = bread(dev, block)))
+            block++;
+        else
+            break;
+    }
+    return sb;
+}
+
+static void mount_root(void)
+{
+    DEBUGK("Mount root file system...\n");
+    
+    device_t *device = device_find(DEV_PART, 0);
+    root = read_super(device->dev);
+}
+
 void superblock_init(void)
 {
-    device_t *device = device_find(DEV_PART, 0);
-    assert(device);
-    u32 offset = 0;
-    buffer_t *boot = bread(device->dev, offset++);
-    buffer_t *super = bread(device->dev, offset++);
-
-    super_desc_t *sb = (super_desc_t*)super->data;
-    assert(sb->magic == MINX1_MAGIC);
-
-    buffer_t *imap = bread(device->dev, offset);
-    offset+=sb->imap_blocks;
-
-    buffer_t *zmap = bread(device->dev, offset);
-    offset += sb->zmap_blocks;
-
-    buffer_t *buf1 = bread(device->dev, offset);
-    inode_desc_t *inode = (inode_desc_t*)buf1->data; // first inodes, discribe / dir
-    DEBUGK("fmt node: "inode_fmt(inode));
-    buffer_t *buf2 = bread(device->dev, inode->zones[0]);
-    dentry_t *dir = (dentry_t*)buf2->data;
-    inode_desc_t *helloi = NULL;
-
-    while (dir->nr)
-    {
-        DEBUGK("fmt dentry: "entry_fmt(dir));
-        if (!strcmp(dir->name, "hello.txt")) {
-            helloi = (inode_desc_t *)(inode + dir->nr - 1);
-            strcpy(dir->name, "world.txt");
-            buf2->dirty = true;
-        }
-        dir++;
+    for(size_t i=0; i < SUPER_NR; ++i) {
+        super_block_t *sb = &super_block_table[i];
+        memset(sb, 0 , sizeof(*sb));
+        sb->dev = DEV_NULL;
+        list_init(&sb->inode_list);
     }
-    buffer_t *buf3 = bread(device->dev, helloi->zones[0]);
-    DEBUGK("hello.txt reads: %s", (char*)buf3->data);
-    strcpy(buf3->data, "response from jos!!!");
-    buf3->dirty = true;
-    brelease(buf3);
-
-    brelease(buf2);
-
-    helloi->size = strlen(buf3->data); // this is a inode on buf1
-    buf1->dirty = true;
-    brelease(buf1);
+    mount_root();
 }
