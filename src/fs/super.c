@@ -71,6 +71,15 @@ static void mount_root(void)
     
     device_t *device = device_find(DEV_PART, 0);
     root = read_super(device->dev);
+    device = device_find(DEV_PART, 1); // slave
+    assert(device);
+    super_block_t *sb = read_super(device->dev);
+    
+    int idx = ialloc(sb->dev);
+    ifree(sb->dev, idx);
+
+    idx = balloc(sb->dev);
+    bfree(sb->dev, idx);
 }
 
 void superblock_init(void)

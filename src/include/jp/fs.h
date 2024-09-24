@@ -80,3 +80,8 @@ typedef struct super_block {
 
 super_block_t* get_super(dev_t dev);
 super_block_t* read_super(dev_t dev);
+
+int balloc(dev_t dev);
+void bfree(dev_t dev, int idx);
+int ialloc(dev_t dev);
+void ifree(dev_t dev, int idx);

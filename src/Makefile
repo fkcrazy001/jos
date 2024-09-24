@@ -60,6 +60,7 @@ $(BUILD)/kernel.bin: $(BUILD)/kernel/start.o \
 					$(BUILD)/kernel/device.o \
 					$(BUILD)/kernel/buffer.o \
 					$(BUILD)/fs/super.o \
+					$(BUILD)/fs/bmap.o \
 					$(BUILD)/lib/string.o \
 					$(BUILD)/lib/vsprintf.o \
 					$(BUILD)/lib/stdlib.o \
