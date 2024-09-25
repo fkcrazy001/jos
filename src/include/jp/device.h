@@ -15,8 +15,8 @@ enum device_type {
 enum device_subtype {
     DEV_CONSOLE,
     DEV_KEYBOARD,
-    DEV_DISK,
-    DEV_PART,
+    DEV_IDE_DISK,
+    DEV_IDE_PART,
 };
 
 enum device_cmd {

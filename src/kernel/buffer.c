@@ -144,8 +144,10 @@ buffer_t *getblk(dev_t dev, u32 block)
 {
     u32 pid = current->pid;
     buffer_t *bf = hash_get(dev, block, pid);
-    if (bf)
+    if (bf) {
+        assert(bf->valid);
         return bf;
+    }
     bf = get_free_buffer();
     assert(bf && bf->count == 0 && !bf->dirty);
     

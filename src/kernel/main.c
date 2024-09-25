@@ -29,12 +29,13 @@ void kernel_init(void)
     time_init();
     // rtc_init();
     ide_init();
-    buffer_init();
-    superblock_init();
     clock_init();
     keyboard_init();
-    task_init();
     syscall_init();
-    list_test();
+    
+    task_init();
+    buffer_init();
+    superblock_init();
+    // list_test();
     set_interrupt_state(true);
 }

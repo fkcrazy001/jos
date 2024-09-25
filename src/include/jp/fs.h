@@ -20,6 +20,16 @@ typedef struct super_desc {
 #define BLOCK_SIZE 1024  // 块大小
 #define SECTOR_SIZE 512  // 扇区大小
 
+#define BLOCK_BITS (BLOCK_SIZE * 8)
+#define BLOCK_INODES (BLOCK_SIZE / sizeof(inode_desc_t))
+#define BLOCK_DENTRIES (BLOCK_SIZE / sizeof(dentry_t))
+#define BLOCK_INDEXES (BLOCK_SIZE / sizeof(u16))
+
+#define DIRECT_BLOCK 7
+#define INDIRECT1_BLOCK BLOCK_INDEXES
+#define INDIRECT2_BLOCK (INDIRECT1_BLOCK * INDIRECT1_BLOCK)
+#define TOTAL_BLOCK (DIRECT_BLOCK + INDIRECT1_BLOCK + INDIRECT2_BLOCK)
+
 #define MINX1_MAGIC 0x137f
 #define NAME_LEN 14
 
@@ -63,7 +73,7 @@ typedef struct inode{
     u32 count;
     time_t atime; // access time
     time_t ctime;
-    list_node_t node;
+    list_node_t node; // 使用中的inode被连在sb的链表中
     dev_t mount; // 安装设备？ used in mount
 } inode_t;
 
@@ -85,3 +95,8 @@ int balloc(dev_t dev);
 void bfree(dev_t dev, int idx);
 int ialloc(dev_t dev);
 void ifree(dev_t dev, int idx);
+
+int bmap(inode_t *inode, int block, bool create);
+inode_t *get_root_inode(void); // 获取根目录inode
+inode_t *iget(dev_t dev, int nr); // 获取设备dev的nr inode
+void input(inode_t *inode); // 释放inode
