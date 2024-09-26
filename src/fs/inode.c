@@ -81,13 +81,6 @@ void input(inode_t *inode)
     put_free_inode(inode);
 }
 
-
-int bmap(inode_t *inode, int block, bool create)
-{
-
-}
-
-
 void inode_init(void)
 {
     for (int i = 0; i < INODE_MAX; ++i) {

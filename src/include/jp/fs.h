@@ -62,6 +62,8 @@ typedef struct inode_desc
                   node->zones[6], node->zones[7], node->zones[8]
 
 #define entry_fmt(node) "nr = %d, name=%s\n",node->nr, node->name
+
+
 /// end of minix-fs 1.0
 
 //0 inode on mem
@@ -96,7 +98,9 @@ void bfree(dev_t dev, int idx);
 int ialloc(dev_t dev);
 void ifree(dev_t dev, int idx);
 
-int bmap(inode_t *inode, int block, bool create);
 inode_t *get_root_inode(void); // 获取根目录inode
 inode_t *iget(dev_t dev, int nr); // 获取设备dev的nr inode
 void input(inode_t *inode); // 释放inode
+
+// 获取 inode 的第block对应硬盘的 block，如果不存在且create为true，那么获取一块
+int bmap(inode_t *inode, int block, bool create);
