@@ -19,6 +19,7 @@ extern void arena_init(void);
 extern void ide_init(void);
 extern void buffer_init(void);
 extern void superblock_init(void);
+extern void inode_init(void);
 void kernel_init(void)
 {
     tss_init();
@@ -35,6 +36,7 @@ void kernel_init(void)
     
     task_init();
     buffer_init();
+    inode_init();
     superblock_init();
     // list_test();
     set_interrupt_state(true);

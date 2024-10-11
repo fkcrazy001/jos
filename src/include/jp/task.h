@@ -2,6 +2,7 @@
 #define __TASK_H__
 #include <jp/types.h>
 #include <jp/list.h>
+#include <jp/fs.h>
 
 #define KERNEL_USER 0
 #define NORMAL_USER 1
@@ -34,6 +35,8 @@ typedef struct task {
     u32 pde;  // process page dir entry
     u32 brk; // process heap max addr
     struct bitmap_t *vmap;//va map
+    inode_t *ipwd; // process working dir
+    inode_t *iroot; // process root
     u32 magic;
 } task_t;
 

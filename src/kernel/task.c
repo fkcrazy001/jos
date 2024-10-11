@@ -213,6 +213,8 @@ static task_t* task_create(task_func fn,  const char* name, u32 priority, u32 ui
     task->pde = KERNEL_PAGE_DIR;
     task->uid = uid;
     task->vmap = &kernel_map;
+    task->iroot = get_root_inode();
+    task->ipwd = get_root_inode();
     node_init(&task->node);
     return task;
 }

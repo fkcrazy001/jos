@@ -46,8 +46,10 @@ inode_t *iget(dev_t dev, int nr)
     super_block_t *sb = read_super(dev);
     assert(sb);
     inode_t *node = inode_get_from_list(sb, nr);
-    if (node)
+    if (node) {
+        node->count++;
         return node;
+    }
     node = inode_get_free();
     node->dev = dev;
     node->nr = nr;
@@ -61,6 +63,7 @@ inode_t *iget(dev_t dev, int nr)
     node->desc = &(((inode_desc_t*)buf->data)[(nr-1)%BLOCK_INODES]);
     node->ctime = node->desc->mtime;
     node->atime = time();
+    return node;
 }
 
 static void put_free_inode(inode_t *node)
@@ -70,7 +73,7 @@ static void put_free_inode(inode_t *node)
     node->dev = DEV_NULL;
 }
 
-void input(inode_t *inode)
+void iput(inode_t *inode)
 {
     assert(inode && inode->count > 0);
     inode->count--;

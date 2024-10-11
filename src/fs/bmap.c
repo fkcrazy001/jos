@@ -137,7 +137,9 @@ reckon:
             array[index] = balloc(inode->dev);
             buf->dirty = true;
         }
-
+        
+        // buffer 被写回磁盘，但是可用的 bnode 没有被释放，也就意味着这个信息已经被持久化了。 
+        //只是快速内存不用而已。
         brelease(buf);
 
         // 如果 level == 0 或者 索引不存在，直接返回
