@@ -5,7 +5,7 @@
 #include <jp/fs.h>
 
 #define KERNEL_USER 0
-#define NORMAL_USER 1
+#define NORMAL_USER 1000
 
 #define TASK_NAME_LEN 16
 
@@ -29,6 +29,7 @@ typedef struct task {
     u32 jiffies;
     u8  name[TASK_NAME_LEN];
     u32 uid;
+    u32 gid; // 组id
     int32_t wpid; // waiting pid
     int32_t pid; // process id
     int32_t ppid; // parent pid
@@ -37,6 +38,7 @@ typedef struct task {
     struct bitmap_t *vmap;//va map
     inode_t *ipwd; // process working dir
     inode_t *iroot; // process root
+    mode_t umask; // 创建的文件的默认权限 ~umask
     u32 magic;
 } task_t;
 

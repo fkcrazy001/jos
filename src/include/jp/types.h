@@ -46,6 +46,8 @@ typedef enum {
     stderr,
 } std_fd_e;
 
+typedef u16 mode_t; // 文件权限
+
 #define CONCAT(x, y) x##y
 #define RESERVED_TOKEN(x, y) CONCAT(x, y)
 #define RESERVED RESERVED_TOKEN(reserved, __LINE__)

@@ -44,7 +44,8 @@ typedef struct dentry
 
 typedef struct inode_desc
 {
-    u16 mode; // rwx
+    // for minix
+    u16 mode; // [15:12]: file type, [11:9]: 特殊标志, [8:0]: 文件权限
     u16 uid;
     u32 size;
     u32 mtime;

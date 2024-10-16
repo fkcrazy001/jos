@@ -52,6 +52,7 @@ static int32_t sys_write(u32 fd, u32 buf, u32 len)
 
 extern void task_yield(void);
 extern time_t sys_time(void);
+extern mode_t sys_umask(mode_t umask);
 void syscall_init(void)
 {
     for (int i=0;i<SYSCALL_SIZE;++i) {
@@ -69,4 +70,5 @@ void syscall_init(void)
     syscall_table[SYS_NR_EXIT] = (syscall_t)task_exit;
     syscall_table[SYS_NR_WAITPID] = (syscall_t)task_waitpid;
     syscall_table[SYS_NR_TIME] = (syscall_t)sys_time;
+    syscall_table[SYS_NR_UMASK] = (syscall_t)sys_umask;
 }

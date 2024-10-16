@@ -74,14 +74,6 @@ static void mount_root(void)
     root = read_super(device->dev);
     root->iroot = iget(device->dev, 1);
     root->imount = iget(device->dev, 1);
-
-    int idx = 0;
-    inode_t *inode = iget(device->dev,1);
-    idx = bmap(inode, 3, true);
-    idx = bmap(inode, 7 + 3, true);
-    idx = bmap(inode, 7 + 512 + 3, true);
-    iput(inode); 
-    time();
 }
 
 void superblock_init(void)

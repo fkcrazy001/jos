@@ -616,14 +616,14 @@ static void ide_dev_init(void)
             disk->going_up = true;
             dev_t dev =  device_register(DEV_BLOCK, DEV_IDE_DISK,
                 disk, disk->name, DEV_NULL,
-                disk_ioctl, ide_pio_read, ide_pio_write);
+                (f_ioctl)disk_ioctl, (f_read)ide_pio_read,  (f_write)ide_pio_write);
             for (size_t t = 0; t < PARTITION_NR; ++t) {
                 ide_part_t *part = &disk->part[t];
                 if(!part->count)
                     continue;
                 device_register(DEV_BLOCK, DEV_IDE_PART,
                     part, part->name, dev,
-                    part_ioctl, ide_pio_part_read, ide_pio_part_write);
+                    (f_ioctl)part_ioctl, (f_read)ide_pio_part_read, (f_write)ide_pio_part_write);
             }
         }
     }

@@ -212,9 +212,11 @@ static task_t* task_create(task_func fn,  const char* name, u32 priority, u32 ui
     task->state = TASK_READY;
     task->pde = KERNEL_PAGE_DIR;
     task->uid = uid;
+    task->gid = 0; // @todo group id
     task->vmap = &kernel_map;
     task->iroot = get_root_inode();
     task->ipwd = get_root_inode();
+    task->umask = (mode_t)0022;
     node_init(&task->node);
     return task;
 }
