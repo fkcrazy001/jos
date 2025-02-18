@@ -18,7 +18,7 @@ typedef struct buffer {
     list_node_t hnode;
     list_node_t rnode;
     bool dirty; // if this  is dirty
-    bool valid; // if this 
+    bool valid; // if this is valid
 } buffer_t;
 
 buffer_t *getblk(dev_t dev, u32 block);

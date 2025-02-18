@@ -30,6 +30,9 @@ static task_t *task = NULL;
 #include <jp/string.h>
 static u32 sys_test(void)
 {
+    extern void dir_test();
+    dir_test();
+    
     device_t *dev = device_find(DEV_KEYBOARD, 0);
     char ch;
     device_read(dev->dev, &ch, 1, 0, 0);

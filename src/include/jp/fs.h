@@ -36,6 +36,10 @@ typedef struct super_desc {
 #define IMAP_MAX_NR 8
 #define ZMAP_MAX_NR 8
 
+#define SEPARATOR1 '/'
+#define SEPARATOR2 '\\'
+#define IS_SEPARATOR(c) ((c) == SEPARATOR1 || (c) == SEPARATOR2)
+
 typedef struct dentry
 {
     u16 nr; // 在imap位图 以及 inode 中的第nr-1个

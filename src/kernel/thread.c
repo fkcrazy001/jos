@@ -27,13 +27,13 @@ void user_init_thread(void)
 {
     u32 counter=0;
     char ch;
-    mode_t mask = 0;
+    // mode_t mask = 0;
     while (true)
     {
         // @todo user cant access kernel mm
         // *(char*)0xB8000 = 'b';
         sleep(1000);
-        printf("old is %d\n", umask(mask++));
+        // printf("old is %d\n", umask(mask++));
     }
 }
 
