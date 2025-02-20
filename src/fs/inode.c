@@ -77,6 +77,9 @@ void iput(inode_t *inode)
 {
     assert(inode && inode->count > 0);
     inode->count--;
+    if (inode->buf->dirty) {
+        bwrite(inode->buf);
+    }
     if (inode->count)
         return;
     brelease(inode->buf);

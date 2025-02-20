@@ -1,2 +1,3 @@
 
 CFLAGS+=-DDEBUG_LOG
+CFLAGS+=-Werror
