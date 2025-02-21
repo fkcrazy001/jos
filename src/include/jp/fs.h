@@ -47,6 +47,10 @@ typedef struct dentry
     char name[NAME_LEN]; // 文件名
 }dentry_t;
 
+#define P_EXEC IXOTH
+#define P_READ IROTH
+#define P_WRITE IWOTH
+
 typedef struct inode_desc
 {
     // for minix

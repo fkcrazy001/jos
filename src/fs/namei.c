@@ -4,7 +4,7 @@
 #include <jp/stat.h>
 #include <jp/string.h>
 #include <jp/syscall.h>
-
+#include <jp/task.h>
 
 // 文件名是否相等
 // name = "hello/world"
@@ -161,6 +161,116 @@ static buffer_t *add_entry(inode_t *dir, const char *name, dentry_t  **result)
 //     return NULL;
 // }
 
+static bool permission(inode_t *inode, u16 mask)
+{
+    u16 mode = inode->desc->mode;
+    if (!inode->desc->nlinks) {
+        return false;
+    }
+    task_t *task = current;
+    if (task->uid == KERNEL_USER) {
+        return true;
+    }
+
+    if (task->uid == inode->desc->uid) {
+        mode >>= 6;
+    } else if (task->uid == inode->desc->gid) {
+        mode >>= 3;
+    }
+    mode &= 0x3;
+    return (mode & mask) == mask;
+}
+
+/// @brief named 返回 path 的父目录inode，例如 1. /root/.bashrc, 返回 root 的inode，next 指向 .bashrc
+///                                          2. help/a.txt 返回 help 的inode，next指向 a.txt
+///                                          3. a.txt 返回 help的inode， next为 a.txt
+///                                          4. help/ 返回 help的inode， next为空
+/// @param path 
+/// @param next 
+/// @return inode_t *
+static inode_t *named(const char *path, const char **next)
+{
+    const char *left = path;
+    inode_t *inode = NULL;
+    task_t *task = current;
+    if (IS_SEPARATOR(*left)) {
+        inode = task->iroot;
+        left++;
+    } else if (left[0]) {
+        inode = task->ipwd;
+    } else {
+        return NULL;
+    }
+    
+    inode->count++;
+    *next = left;
+    if (!*left) {
+        return inode;
+    }
+    const char *right = strrsep(left);
+    // if left is "/", then left > right
+    if (!right || right < left) {
+        return inode;
+    }
+    right++;
+    *next = left;
+    buffer_t *buf = NULL;
+    dentry_t *entry = NULL;
+    while (true)
+    {
+        buf = find_entry(&inode, left, next, &entry);
+        if (!buf) {
+            inode = NULL;
+            goto out;
+        }
+        dev_t dev = inode->dev;
+        iput(inode);
+        inode = iget(dev, entry->nr);
+        assert(inode);
+        if (!ISDIR(inode->desc->mode) || !permission(inode, P_EXEC)) {
+            iput(inode);
+            inode = NULL;
+            goto out;
+        }
+        if (right == *next) {
+            goto out;
+        }
+        left = *next;
+        brelease(buf); // release this buf
+    }
+out:
+    if (buf) {
+        brelease(buf);
+    }
+    return inode;
+}
+
+static inode_t *namei(const char *path)
+{
+    const char *next = NULL;
+    inode_t *dir = named(path, &next);
+    if (!dir) {
+        return NULL;
+    } else if (!*next) {
+        return dir;
+    }
+    dentry_t *entry = NULL;
+    const char *name = next;
+    inode_t *node = NULL;
+    buffer_t *buf = find_entry(&dir, name, &next, &entry);
+    if (!buf) {
+        goto end;
+    }
+    node = iget(dir->dev, entry->nr);
+end:
+    iput(dir);
+    if (buf) {
+        brelease(buf);
+    }
+    return node;
+}
+
+
 #include <jp/task.h>
 
 void dir_test()
@@ -215,20 +325,29 @@ void dir_test()
 
     assert(*next == 0);
 
-    // test add entry
-    root = task->iroot;
-    root->count++;
-    buf = find_entry(&root, "hello.txt", &next, &entry);
-    u16 nr = entry->nr;
-    buf = add_entry(root, "world.txt", &entry);
-    entry->nr = nr;
+    // // test add entry
+    // root = task->iroot;
+    // root->count++;
+    // buf = find_entry(&root, "hello.txt", &next, &entry);
+    // u16 nr = entry->nr;
+    // buf = add_entry(root, "world.txt", &entry);
+    // entry->nr = nr;
     
 
-    inode_t *hello = iget(dev, nr);
-    hello->desc->nlinks++;
-    hello->buf->dirty = true;
+    // inode_t *hello = iget(dev, nr);
+    // hello->desc->nlinks++;
+    // hello->buf->dirty = true;
 
-    iput(hello);
-    iput(root);
-    brelease(buf);
+    // iput(hello);
+    // iput(root);
+    // brelease(buf);
+    
+    char rootname[] = "/";
+    name = NULL;
+    inode_t *inode = named(rootname, &name);
+    iput(inode);
+
+    inode = namei("/home/hello.txt");
+    DEBUGK("get inode %d", inode->nr);
+    iput(inode);
 }
