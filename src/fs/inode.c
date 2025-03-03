@@ -1,8 +1,9 @@
 #include <jp/fs.h>
 #include <jp/debug.h>
 #include <jp/string.h>
-
+#include <jp/stat.h>
 #include <jp/syscall.h>
+#include <jp/stdlib.h>
 
 #define INODE_MAX 64
 // @todo alloc inode table from kernel memory
@@ -92,4 +93,67 @@ void inode_init(void)
     for (int i = 0; i < INODE_MAX; ++i) {
         put_free_inode(&inode_table[i]);
     }
+}
+
+int inode_read(inode_t *inode, char *buf, int len, int offset)
+{
+    assert(ISFILE(inode->desc->mode) || ISDIR(inode->desc->mode));
+    if (inode->desc->size <= offset) {
+        return EOF;
+    }
+    int begin = offset;
+    int left = MIN(len, inode->desc->size - offset);
+    int readn = 0;
+    while (0 < left) {
+        int nr = bmap(inode, offset / BLOCK_SIZE, false);
+        if (!nr) {
+            goto out;
+        }
+        buffer_t *bf = bread(inode->dev, nr);
+        assert(bf);
+        int start = offset % BLOCK_SIZE;
+        int bf_read_n = MIN(left, BLOCK_SIZE - start);
+        memcpy(buf+readn, (char*)bf->data + start, bf_read_n);
+        left -= bf_read_n;
+        offset += bf_read_n;
+        readn += bf_read_n;
+        brelease(bf);
+    }
+out:
+    inode->ctime = time(); // write to disk?
+    return readn;
+}
+
+
+int inode_write(inode_t *inode, const char *buf, int len, int offset)
+{
+    assert(ISFILE(inode->desc->mode)); // must be file to write. there is other method for dir
+    int write_n = 0;
+    while (len > 0) {
+        int nr = bmap(inode, offset / BLOCK_SIZE, true);
+        if (!nr) {
+            goto out;
+        }
+        buffer_t *bf = bread(inode->dev, nr);
+        assert(bf);
+        int start = offset % BLOCK_SIZE;
+        int bf_write_n = MIN(BLOCK_SIZE - start, len);
+
+        memcpy((char*)bf->data+start, buf + write_n, bf_write_n);
+        bf->dirty = true;
+        brelease(bf);
+        write_n += bf_write_n;
+        len -= bf_write_n;
+        offset += bf_write_n;
+    
+        if (offset >= inode->desc->size) {
+            inode->desc->size = offset;
+            inode->buf->dirty = true;
+        }
+    }
+out:
+    inode->desc->mtime = inode->ctime  = time();
+    inode->buf->dirty = true;
+    bwrite(inode->buf); // @todo: need to do it now?
+    return write_n;
 }

@@ -84,7 +84,7 @@ typedef struct inode{
     u32 nr; // i 节点号
     u32 count;
     time_t atime; // access time
-    time_t ctime;
+    time_t ctime; // 修改时间
     list_node_t node; // 使用中的inode被连在sb的链表中
     dev_t mount; // 安装设备？ used in mount
 } inode_t;
@@ -114,3 +114,6 @@ void iput(inode_t *inode); // 释放inode
 
 // 获取 inode 的第block对应硬盘的 block，如果不存在且create为true，那么获取一块
 int bmap(inode_t *inode, int block, bool create);
+
+int inode_write(inode_t *inode, const char *buf, int len, int offset);
+int inode_read(inode_t *inode, char *buf, int len, int offset);

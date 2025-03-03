@@ -271,83 +271,19 @@ end:
 }
 
 
-#include <jp/task.h>
+#include <jp/memory.h>
 
 void dir_test()
 {
-    task_t *task = current;
-    inode_t *root = task->iroot;
-    root->count++;
-    const char *next = NULL;
-    dentry_t *entry = NULL;
-    buffer_t *buf = NULL;
-    dev_t dev = root->dev;
-
-    // try to read /d1/d2/d3/d4
-    char pathname[] = "d1/d2/d3/d4";
-    const char *name = (const char *)pathname;
+    char* buf = (char*)alloc_kpage(1);
+    inode_t *inode = namei("/d1/d2/d3/../../../hello.txt");
     
-    // d1/d2/d3/d4
-    DEBUGK("find in inode %d, name = %s", root->nr, name);
-    buf = find_entry(&root, name, &next, &entry);
-    DEBUGK("find entry: "entry_fmt(entry));
-    iput(root);
-    root = iget(dev, entry->nr);
-    name = next;
-    brelease(buf);
+    int i = inode_read(inode, buf, PAGE_SIZE, 0);
+    DEBUGK("read %d bytes, content: %s", i, buf);
 
-    // d2/d3/d4
-    DEBUGK("find in inode %d, name = %s", root->nr, name);
-    buf = find_entry(&root, name, &next, &entry);
-    DEBUGK("find entry: "entry_fmt(entry));
-    iput(root);
-    root = iget(dev, entry->nr);
-    name = next;
-    brelease(buf);
+    memset(buf, 'A', PAGE_SIZE);
+    inode_write(inode, (const char*)buf, PAGE_SIZE, 0);
 
-    // d3/d4
-    DEBUGK("find in inode %d, name = %s", root->nr, name);
-    buf = find_entry(&root, name, &next, &entry);
-    DEBUGK("find entry: "entry_fmt(entry));
-    iput(root);
-    root = iget(dev, entry->nr);
-    name = next;
-    brelease(buf);
-
-    // d4
-    DEBUGK("find in inode %d, name = %s", root->nr, name);
-    buf = find_entry(&root, name, &next, &entry);
-    DEBUGK("find entry: "entry_fmt(entry));
-    iput(root);
-    root = iget(dev, entry->nr);
-    name = next;
-    brelease(buf);
-
-    assert(*next == 0);
-
-    // // test add entry
-    // root = task->iroot;
-    // root->count++;
-    // buf = find_entry(&root, "hello.txt", &next, &entry);
-    // u16 nr = entry->nr;
-    // buf = add_entry(root, "world.txt", &entry);
-    // entry->nr = nr;
-    
-
-    // inode_t *hello = iget(dev, nr);
-    // hello->desc->nlinks++;
-    // hello->buf->dirty = true;
-
-    // iput(hello);
-    // iput(root);
-    // brelease(buf);
-    
-    char rootname[] = "/";
-    name = NULL;
-    inode_t *inode = named(rootname, &name);
     iput(inode);
-
-    inode = namei("/home/hello.txt");
-    DEBUGK("get inode %d", inode->nr);
-    iput(inode);
+    free_kpage((u32)buf, 1);
 }
