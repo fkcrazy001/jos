@@ -157,3 +157,42 @@ out:
     bwrite(inode->buf); // @todo: need to do it now?
     return write_n;
 }
+
+static void inode_bfree(inode_t *inode, u16 *array, int idx, int level)
+{
+    u16 nr = array[idx];
+    if (!nr)
+        return;
+    if (!level) {
+        bfree(inode->dev,  nr);
+        return;
+    }
+    buffer_t *bf = bread(inode->dev, nr);
+    int i = 0;
+    for (i = 0; i < BLOCK_INDEXES; ++i) {
+        inode_bfree(inode, bf->data, i, level - 1);
+    }
+    brelease(bf);
+    bfree(inode->dev, nr);
+}
+
+int inode_truncate(inode_t *inode)
+{
+    assert(ISFILE(inode->desc->mode) || ISDIR(inode->desc->mode));
+    int i = 0;
+    for (i = 0; i < DIRECT_BLOCK; ++i) {
+        inode_bfree(inode, inode->desc->zones, i, 0);
+        inode->desc->zones[i] = 0;
+    }
+    inode_bfree(inode, inode->desc->zones, DIRECT_BLOCK, 1);
+    inode->desc->zones[DIRECT_BLOCK + 1] = 0;
+
+    inode_bfree(inode, inode->desc->zones, DIRECT_BLOCK + 1, 2);
+    inode->desc->zones[DIRECT_BLOCK + 2] = 0;
+
+    inode->desc->size = 0;
+    inode->desc->mtime = inode->ctime = time();
+    inode->buf->dirty = true;
+    // @fixme, sync write
+    bwrite(inode->buf);
+}

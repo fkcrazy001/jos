@@ -281,8 +281,9 @@ void dir_test()
     int i = inode_read(inode, buf, PAGE_SIZE, 0);
     DEBUGK("read %d bytes, content: %s", i, buf);
 
-    memset(buf, 'A', PAGE_SIZE);
-    inode_write(inode, (const char*)buf, PAGE_SIZE, 0);
+    inode_truncate(inode);
+    i = inode_read(inode, buf, PAGE_SIZE, 0);
+    DEBUGK("read %d bytes, content: %s", i, buf);
 
     iput(inode);
     free_kpage((u32)buf, 1);

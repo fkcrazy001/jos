@@ -117,3 +117,4 @@ int bmap(inode_t *inode, int block, bool create);
 
 int inode_write(inode_t *inode, const char *buf, int len, int offset);
 int inode_read(inode_t *inode, char *buf, int len, int offset);
+int inode_truncate(inode_t *inode);
