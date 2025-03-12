@@ -99,3 +99,13 @@ mode_t umask(mode_t mask)
 {
     return _syscall1(SYS_NR_UMASK, (u32)mask);
 }
+
+int rmdir(const char *path)
+{
+    return _syscall1(SYS_NR_RMDIR, (u32)path);
+}
+
+int mkdir(const char *path, uint16 mode)
+{
+    return _syscall2(SYS_NR_MKDIR, (u32)path, (u32)mode);
+}

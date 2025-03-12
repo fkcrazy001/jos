@@ -176,7 +176,7 @@ static void inode_bfree(inode_t *inode, u16 *array, int idx, int level)
     bfree(inode->dev, nr);
 }
 
-int inode_truncate(inode_t *inode)
+void inode_truncate(inode_t *inode)
 {
     assert(ISFILE(inode->desc->mode) || ISDIR(inode->desc->mode));
     int i = 0;

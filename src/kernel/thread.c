@@ -47,9 +47,11 @@ void test_thread(void)
 {
     set_interrupt_state(true);
     u32 counter = 0;
-    test();
+    mkdir("/world.txt", 0755);
+    rmdir("/empty");
     while (true)
     {
+        test();
         sleep(10);
     }
 }

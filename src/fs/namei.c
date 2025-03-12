@@ -105,11 +105,14 @@ static buffer_t *add_entry(inode_t *dir, const char *name, dentry_t  **result)
             dir->desc->mtime = time();
             dir->buf->dirty = true;
         } else{
-            if(match_name(name, entry->name, &next)) {
-                *result = entry;
-                return buf;
+            if(entry->nr){
+                if (match_name(name, entry->name, &next)) {
+                    *result = entry;
+                    return buf;
+                }
+                continue;
             }
-            continue;
+            // rmdir let entry->nr == 0;
         }
         if (entry->nr)
             panic("fs!!!");
@@ -270,6 +273,185 @@ end:
     return node;
 }
 
+int sys_mkdir(u32 path, u32 mode)
+{
+    int ret = EOF;
+    const char *path_s = (const char *)path;
+    const char *next = NULL;
+    dentry_t *entry = NULL;
+    buffer_t *entry_buf = NULL;
+    inode_t *dir = NULL;
+    const char *name = NULL;
+    dir = named(path_s, &next);
+    
+    if (!dir || !*next) {
+        DEBUGK("can't find parent dir, dir %p, *next = %c", dir, *next);
+        goto out;
+    }
+    
+    if (!permission(dir, P_WRITE)) {
+        WARNK("not write permission on parent dir");
+        goto out;   
+    }
+
+    name = next;
+    entry_buf = find_entry(&dir, name, &next, &entry);
+    if (entry) {
+        DEBUGK("find existing dir: %s", path_s);
+        ret = 0;
+        goto out;
+    }
+
+    entry_buf = add_entry(dir, name, &entry);
+    if (!entry) {
+        WARNK("can't create entry %s", name);
+        ret = EOF;
+        goto out;
+    }
+    entry->nr = ialloc(dir->dev);
+    assert(entry->nr);
+    entry_buf->dirty = true;
+
+    task_t *task = current;
+    inode_t *inode = iget(dir->dev, entry->nr);
+    assert(inode);
+    inode->buf->dirty = true;
+    
+    inode->desc->gid = task->gid;
+    inode->desc->mode = (u16)((mode&0777) & (~task->umask) | IFDIR);
+    inode->desc->mtime = time();
+    inode->desc->nlinks = 2; // 一个是 当前目录下的. ，另外一个是父目录下的nr
+    inode->desc->size = sizeof(dentry_t) * 2;
+    inode->desc->uid = task->uid;
+    // write real data
+    buffer_t *zbuf = bread(dir->dev, bmap(inode, 0, true));
+    dentry_t *tmp_entry = zbuf->data;
+    strncpy(tmp_entry->name, ".", NAME_LEN);
+    tmp_entry->nr = entry->nr;
+    tmp_entry++;
+    strncpy(tmp_entry->name, "..", NAME_LEN);
+    tmp_entry->nr = dir->nr;
+    zbuf->dirty = true;
+    brelease(zbuf);
+    iput(inode);
+    // parent dir process
+    dir->desc->nlinks += 1;
+    dir->buf->dirty = true;
+    ret = 0;
+out:
+    if (dir)
+        iput(dir);
+    if (entry_buf)
+        brelease(entry_buf);
+    
+    return ret;
+}
+
+static bool dir_inode_is_empty(inode_t *dir)
+{
+    assert(ISDIR(dir->desc->mode));
+    int entries = dir->desc->size / (sizeof(dentry_t));
+    if (entries < 2 || !dir->desc->zones[0]) {
+        panic("bad fs!!!");
+    }
+    int i = 0, cnt = 0;
+    buffer_t *buf = NULL;
+    dentry_t *entry = NULL;
+    for (i = 0; i < entries;entry++, ++i) {
+        if (!buf || (char*)entry >= ((char*)buf->data + BLOCK_SIZE)) {
+            if (buf) {
+                brelease(buf);
+            }
+            int block = bmap(dir, i/ BLOCK_DENTRIES, false);
+            assert(block);
+            buf = bread(dir->dev, block);
+            assert(buf);
+            entry = (dentry_t*)buf->data;
+        }
+        if (entry->nr)
+            cnt++;
+    }
+    if (buf) {
+        brelease(buf);
+    }
+    if (cnt < 2) {
+        panic("bad fs!!!");
+    }
+    return cnt == 2;
+}
+
+int sys_rmdir(u32 path)
+{
+    int ret = EOF;
+    const char *path_s = (const char *)path;
+    const char *next = NULL;
+    dentry_t *entry = NULL;
+    buffer_t *entry_buf = NULL;
+    inode_t *dir = NULL;
+    const char *name = NULL;
+    inode_t *inode = NULL;
+    dir = named(path_s, &next);
+    
+    if (!dir || !*next) {
+        DEBUGK("can't find parent dir, dir %p, *next = %c", dir, *next);
+        goto out;
+    }
+    
+    if (!permission(dir, P_WRITE)) {
+        WARNK("not write permission on parent dir");
+        goto out;   
+    }
+
+    name = next;
+    entry_buf = find_entry(&dir, name, &next, &entry);
+    if (!entry) {
+        WARNK("can't find existing dir: %s", path_s);
+        goto out;
+    }
+    inode = iget(dir->dev, entry->nr);
+    if (!inode || inode == dir || !ISDIR(inode->desc->mode)) {
+        WARNK("something unexpected happened!");
+        goto out;
+    }
+    task_t *task = current;
+    if((dir->desc->mode & ISVTX) && task->uid != inode->desc->uid) {
+        DEBUGK("user %d has no permission to write dir %s", task->uid, name);
+        goto out;
+    }
+    if (dir->dev != inode->dev || inode->count > 1) {
+        DEBUGK("check failed");
+        goto out;
+    }
+
+    if (!dir_inode_is_empty(inode)) {
+        WARNK("can't delete dir which is not empty!!!");
+        goto out;
+    }
+
+    inode_truncate(inode);
+    ifree(inode->dev, inode->nr);
+    inode->desc->nlinks = 0;
+    inode->buf->dirty = true;
+    inode->nr = 0;
+
+    entry->nr = 0;
+    entry_buf->dirty = true;
+    dir->desc->nlinks -= 1;
+    assert(dir->desc->nlinks>0);
+    dir->atime = dir->ctime = dir->desc->mtime = time();
+    dir->buf->dirty = true;
+    ret = 0;
+out:
+    if (inode) {
+        iput(inode);
+    }
+    if (dir)
+        iput(dir);
+    if (entry_buf)
+        brelease(entry_buf);
+    
+    return ret;
+}
 
 #include <jp/memory.h>
 

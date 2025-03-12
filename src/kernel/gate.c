@@ -28,11 +28,9 @@ static u32 sys_default(void)
 static task_t *task = NULL;
 #include <jp/buffer.h>
 #include <jp/string.h>
+
 static u32 sys_test(void)
-{
-    extern void dir_test();
-    dir_test();
-    
+{   
     device_t *dev = device_find(DEV_KEYBOARD, 0);
     char ch;
     device_read(dev->dev, &ch, 1, 0, 0);
@@ -56,6 +54,8 @@ static int32_t sys_write(u32 fd, u32 buf, u32 len)
 extern void task_yield(void);
 extern time_t sys_time(void);
 extern mode_t sys_umask(mode_t umask);
+extern int sys_mkdir(u32 path, u32 mode);
+extern int sys_rmdir(u32 path);
 void syscall_init(void)
 {
     for (int i=0;i<SYSCALL_SIZE;++i) {
@@ -74,4 +74,7 @@ void syscall_init(void)
     syscall_table[SYS_NR_WAITPID] = (syscall_t)task_waitpid;
     syscall_table[SYS_NR_TIME] = (syscall_t)sys_time;
     syscall_table[SYS_NR_UMASK] = (syscall_t)sys_umask;
+    
+    syscall_table[SYS_NR_MKDIR] = (syscall_t)sys_mkdir;
+    syscall_table[SYS_NR_RMDIR] = (syscall_t)sys_rmdir;
 }

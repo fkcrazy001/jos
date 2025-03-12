@@ -13,6 +13,8 @@ typedef enum {
     SYS_NR_WAITPID = 7,
     SYS_NR_TIME = 13,
     SYS_NR_GETPID = 20,
+    SYS_NR_MKDIR = 39,
+    SYS_NR_RMDIR = 40,
     SYS_NR_BRK= 45,
     SYS_NR_UMASK=60,
     SYS_NR_GETPPID = 64,
@@ -36,3 +38,6 @@ int32_t waitpid(int32_t pid, int *status);
 time_t time(void);
 
 mode_t umask(mode_t mask);
+
+int rmdir(const char *path);
+int mkdir(const char *path, uint16 mode);

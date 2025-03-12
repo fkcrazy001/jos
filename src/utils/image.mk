@@ -24,6 +24,7 @@ $(BUILD)/master.img: $(BUILD)/boot/boot.bin \
 
 	sudo chown ${USER} /mnt
 
+	mkdir -p /mnt/empty
 	mkdir -p /mnt/home
 	mkdir -p /mnt/d1/d2/d3/d4
 
