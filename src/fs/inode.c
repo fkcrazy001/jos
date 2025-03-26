@@ -185,10 +185,10 @@ void inode_truncate(inode_t *inode)
         inode->desc->zones[i] = 0;
     }
     inode_bfree(inode, inode->desc->zones, DIRECT_BLOCK, 1);
-    inode->desc->zones[DIRECT_BLOCK + 1] = 0;
+    inode->desc->zones[DIRECT_BLOCK] = 0;
 
     inode_bfree(inode, inode->desc->zones, DIRECT_BLOCK + 1, 2);
-    inode->desc->zones[DIRECT_BLOCK + 2] = 0;
+    inode->desc->zones[DIRECT_BLOCK + 1] = 0;
 
     inode->desc->size = 0;
     inode->desc->mtime = inode->ctime = time();

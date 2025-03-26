@@ -435,6 +435,7 @@ int sys_rmdir(u32 path)
     inode->nr = 0;
 
     entry->nr = 0;
+    memset(entry->name, 0, sizeof(entry->name));
     entry_buf->dirty = true;
     dir->desc->nlinks -= 1;
     assert(dir->desc->nlinks>0);
@@ -458,14 +459,14 @@ out:
 void dir_test()
 {
     char* buf = (char*)alloc_kpage(1);
-    inode_t *inode = namei("/d1/d2/d3/../../../hello.txt");
+    inode_t *inode = namei("/home");
     
     int i = inode_read(inode, buf, PAGE_SIZE, 0);
     DEBUGK("read %d bytes, content: %s", i, buf);
 
-    inode_truncate(inode);
-    i = inode_read(inode, buf, PAGE_SIZE, 0);
-    DEBUGK("read %d bytes, content: %s", i, buf);
+    // inode_truncate(inode);
+    // i = inode_read(inode, buf, PAGE_SIZE, 0);
+    // DEBUGK("read %d bytes, content: %s", i, buf);
 
     iput(inode);
     free_kpage((u32)buf, 1);

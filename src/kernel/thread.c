@@ -45,6 +45,8 @@ void init_thread(void)
 
 void test_thread(void)
 {
+    extern void dir_test(void);
+    dir_test();
     set_interrupt_state(true);
     u32 counter = 0;
     mkdir("/world.txt", 0755);
