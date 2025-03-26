@@ -80,8 +80,8 @@ typedef struct inode_desc
 typedef struct inode{
     inode_desc_t *desc; // inode 描述符，从磁盘上读过来的
     buffer_t *buf; // inode 所属的 buffer
-    dev_t dev;
-    u32 nr; // i 节点号
+    dev_t dev; // which disk
+    u32 nr; // inode 号
     u32 count;
     time_t atime; // access time
     time_t ctime; // 修改时间

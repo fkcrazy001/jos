@@ -56,6 +56,8 @@ extern time_t sys_time(void);
 extern mode_t sys_umask(mode_t umask);
 extern int sys_mkdir(u32 path, u32 mode);
 extern int sys_rmdir(u32 path);
+extern int sys_link(u32 path, u32 new_path);
+extern int sys_unlink(u32 path);
 void syscall_init(void)
 {
     for (int i=0;i<SYSCALL_SIZE;++i) {
@@ -77,4 +79,7 @@ void syscall_init(void)
     
     syscall_table[SYS_NR_MKDIR] = (syscall_t)sys_mkdir;
     syscall_table[SYS_NR_RMDIR] = (syscall_t)sys_rmdir;
+
+    syscall_table[SYS_NR_LINK] = (syscall_t)sys_link;
+    syscall_table[SYS_NR_UNLINK] = (syscall_t)sys_unlink;
 }

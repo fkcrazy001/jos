@@ -109,3 +109,13 @@ int mkdir(const char *path, uint16 mode)
 {
     return _syscall2(SYS_NR_MKDIR, (u32)path, (u32)mode);
 }
+
+int unlink(const char *path)
+{
+    return _syscall1(SYS_NR_UNLINK, (u32)path);
+}
+
+int link(const char *path, const char *new_path)
+{
+    return _syscall2(SYS_NR_LINK, (u32)path, (u32)new_path);
+}

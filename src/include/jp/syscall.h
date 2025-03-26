@@ -11,6 +11,8 @@ typedef enum {
     SYS_NR_FORK = 2,
     SYS_NR_WRITE = 4,
     SYS_NR_WAITPID = 7,
+    SYS_NR_LINK = 9,
+    SYS_NR_UNLINK = 10,
     SYS_NR_TIME = 13,
     SYS_NR_GETPID = 20,
     SYS_NR_MKDIR = 39,
@@ -41,3 +43,6 @@ mode_t umask(mode_t mask);
 
 int rmdir(const char *path);
 int mkdir(const char *path, uint16 mode);
+
+int unlink(const char *path);
+int link(const char *path, const char *new_path);

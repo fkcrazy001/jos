@@ -296,14 +296,14 @@ int sys_mkdir(u32 path, u32 mode)
 
     name = next;
     entry_buf = find_entry(&dir, name, &next, &entry);
-    if (entry) {
+    if (entry_buf) {
         DEBUGK("find existing dir: %s", path_s);
         ret = 0;
         goto out;
     }
 
     entry_buf = add_entry(dir, name, &entry);
-    if (!entry) {
+    if (!entry_buf) {
         WARNK("can't create entry %s", name);
         ret = EOF;
         goto out;
@@ -404,7 +404,7 @@ int sys_rmdir(u32 path)
 
     name = next;
     entry_buf = find_entry(&dir, name, &next, &entry);
-    if (!entry) {
+    if (!entry_buf) {
         WARNK("can't find existing dir: %s", path_s);
         goto out;
     }
@@ -451,6 +451,131 @@ out:
     if (entry_buf)
         brelease(entry_buf);
     
+    return ret;
+}
+
+int sys_link(u32 old_path, u32 new_path)
+{
+    int ret = EOF;
+    const char *old_path_name = (const char*)old_path;
+    const char *new_path_name = (const char*)new_path;
+    inode_t *old_file_inode = namei(old_path_name);
+    inode_t *new_file_inode = NULL;
+    inode_t *new_file_parent = NULL;
+    buffer_t *new_file_dir_entry_buffer = NULL;
+    dentry_t *new_file_dir_entry = NULL;
+    if (!old_file_inode || !ISFILE(old_file_inode->desc->mode)) {
+        WARNK("invalid file %s", old_path_name);
+        goto out;
+    }
+    const char *next;
+    new_file_parent = named(new_path_name, &next);
+    if (!new_file_parent  || !permission(new_file_parent, P_WRITE)) {
+        WARNK("can't find %s parent dir or no permission to write", new_file_parent);
+        goto out;
+    }
+    if (!*next) {
+        WARNK("file name invalid!");
+        goto out;
+    }
+    const char *name = next;
+    new_file_dir_entry_buffer = find_entry(&new_file_parent, name, &next, &new_file_dir_entry);
+    if (new_file_dir_entry_buffer) {
+        DEBUGK("file  %s existing", new_path_name);
+        ret = 0;
+        goto out;
+    }
+    if (new_file_parent->dev != old_file_inode->dev) {
+        WARNK("can't create hardlink between 2 device");
+        goto out;
+    }
+    new_file_dir_entry_buffer = add_entry(new_file_parent, name, &new_file_dir_entry);
+    if (!new_file_dir_entry_buffer) {
+        WARNK("can't create entry for %s on parent dir", new_path_name);
+        goto out;
+    }
+    new_file_dir_entry->nr = old_file_inode->nr;
+    new_file_dir_entry_buffer->dirty = true;
+    
+    old_file_inode->desc->nlinks++;
+    old_file_inode->buf->dirty = true;
+    old_file_inode->atime = time();
+    ret = 0;
+out:
+    if (new_file_dir_entry_buffer) {
+        brelease(new_file_dir_entry_buffer);
+    }
+    if (new_file_parent) {
+        iput(new_file_parent);
+    }
+    if (new_file_inode) {
+        iput(new_file_inode);
+    }
+    if (old_file_inode)
+        iput(old_file_inode);
+    return ret;
+}
+
+int sys_unlink(u32 file_path)
+{
+    int ret = EOF;
+    const char *file_path_name = (const char *)file_path;
+    const char *next = NULL;
+    inode_t *file_dir_inode = named(file_path_name, &next);
+    buffer_t *file_entry_buf = NULL;
+    inode_t *file_inode = NULL;
+    if (!file_dir_inode) {
+        WARNK("can't find file %s parent dir", file_path_name);
+        goto out;
+    }
+    if (!*next) {
+        WARNK("name %s invalid ", file_path_name);
+        goto out;
+    }
+    if (!permission(file_dir_inode, P_WRITE)) {
+        WARNK("no write permission on parent dir");
+        goto out;
+    }
+    const char *name = next;
+    dentry_t *file_entry = NULL;
+    file_entry_buf = find_entry(&file_dir_inode, name, &next, &file_entry);
+    if (!file_entry_buf) {
+        WARNK("file not exist !!!");
+        goto out;
+    }
+    file_inode = iget(file_dir_inode->dev, file_entry->nr);
+    if (!file_inode || !ISFILE(file_inode->desc->mode)) {
+        WARNK("can't get file inode or not file");
+        goto out;
+    }
+    task_t *task = current;
+    if ((file_inode->desc->mode & ISVTX) && task->uid != file_inode->desc->uid) {
+        WARNK("can't delete VTX file, file->uid %d, current uid %d", file_inode->desc->uid, task->uid);
+        goto out;
+    }
+    assert(file_inode->desc->nlinks);
+    file_entry->nr = 0;
+    file_entry_buf->dirty = true;
+
+    // file_dir_inode->desc->size -= sizeof(*file_entry); // don't reduce size, nr = 0 says this is invalid
+    file_dir_inode->buf->dirty = true;
+
+    file_inode->desc->nlinks--;
+    file_inode->buf->dirty = true;
+    if (!file_inode->desc->nlinks) {
+        inode_truncate(file_inode);
+        ifree(file_inode->dev, file_inode->nr);
+    }
+    ret = 0;
+out:
+    if (file_inode) {
+        iput(file_inode);
+    }
+    if (file_entry_buf) {
+        brelease(file_entry_buf);
+    }
+    if (file_dir_inode)
+        iput(file_dir_inode);
     return ret;
 }
 
