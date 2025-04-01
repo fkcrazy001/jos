@@ -41,6 +41,19 @@ typedef struct super_desc {
 #define SEPARATOR2 '\\'
 #define IS_SEPARATOR(c) ((c) == SEPARATOR1 || (c) == SEPARATOR2)
 
+enum file_flags {
+    O_RDONLY = 00, // ready only
+    O_WRONLY = 01, // write only
+    O_RDWR = 02, // read write 
+    O_ACCMODE = 03, // access mode
+    O_CREATE = 00100, // create if not exist
+    O_EXCL = 00200, // du zhan use file
+    O_NOCTTY = 00400, // no ctrl tty
+    O_TRUNC = 01000, // trunc file
+    O_APPEND = 02000, // append on file
+    O_NONBLOCK = 04000, // this file is non block
+};
+
 typedef struct dentry
 {
     u16 nr; // 在imap位图 以及 inode 中的第nr-1个
@@ -118,3 +131,4 @@ int bmap(inode_t *inode, int block, bool create);
 int inode_write(inode_t *inode, const char *buf, int len, int offset);
 int inode_read(inode_t *inode, char *buf, int len, int offset);
 void inode_truncate(inode_t *inode);
+inode_t *inode_open(const char *pathname, int flags, int mode);

@@ -579,6 +579,74 @@ out:
     return ret;
 }
 
+inode_t *inode_open(const char *pathname, int flags, int mode)
+{
+    inode_t *dir = NULL;
+    inode_t *file = NULL;
+    buffer_t *entry_buf = NULL;
+    dentry_t *entry = NULL;
+    const char *next = NULL;
+
+    dir = named(pathname, &next);
+    if (!dir || !*next) {
+        DEBUGK("input file name invalid: %s", pathname);
+        goto out;
+    }
+    if ((flags & O_TRUNC) && (flags & O_ACCMODE) == O_RDONLY) {
+        DEBUGK("trunc but with only read flag, we give it a write permit");
+        flags |= O_WRONLY;
+    }
+    const char *name = next;
+    entry_buf = find_entry(&dir, name, &next, &entry);
+    if (entry_buf) {
+        DEBUGK("find file: req %s, disk %s", name, entry->name);
+        file = iget(dir->dev, entry->nr);
+        goto makeup;
+    }
+    if (!(flags & O_CREATE)) {
+        DEBUGK("no create mode on not exist file");
+        goto out;
+    }
+    if (!permission(dir, P_WRITE)) {
+        DEBUGK("no write permission on dir");
+        goto out;
+    }
+    entry_buf = add_entry(dir, name, &entry);
+    assert(entry_buf);
+    entry->nr = ialloc(dir->dev);
+    assert(entry->nr);
+    entry_buf->dirty = true;
+    
+    task_t *task = current;
+    file = iget(dir->dev, entry->nr);
+    assert(file);
+    file->buf->dirty = true;
+    
+    file->desc->gid = task->gid;
+    file->desc->mode = (u16)((mode&0777) & (~task->umask) | IFREG);
+    file->desc->mtime = time();
+    file->desc->nlinks = 1; // self 
+    file->desc->size = 0;
+    file->desc->uid = task->uid;
+makeup:
+    assert(file);
+    if (ISDIR(file->desc->mode) || !permission(file, flags&O_ACCMODE)) {
+        DEBUGK("permission check failed");
+        iput(file);
+        file = NULL;
+        goto out;
+    }
+    file->atime = time();
+    if (flags & O_TRUNC)
+        inode_truncate(file);
+out:
+    if (entry_buf)
+        brelease(entry_buf);
+    if (dir)
+        iput(dir);
+    return file;
+}
+
 #include <jp/memory.h>
 
 void dir_test()

@@ -49,8 +49,8 @@ void test_thread(void)
     u32 counter = 0;
     // mkdir("/world.txt", 0755);
     // rmdir("/empty");
-    link("/hello.txt", "world.txt");
-    unlink("/hello.txt");
+    // link("/hello.txt", "world.txt");
+    // unlink("/hello.txt");
     while (true)
     {
         test();

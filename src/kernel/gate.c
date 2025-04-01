@@ -31,6 +31,15 @@ static task_t *task = NULL;
 
 static u32 sys_test(void)
 {   
+    inode_t *inode = inode_open("/world.txt", O_RDWR | O_CREATE, 0755);
+    assert(inode);
+    char *buf = (char*)alloc_kpage(1);
+    assert(buf);
+    int i = inode_read(inode, buf, PAGE_SIZE, 0);
+    memset(buf, 'A', PAGE_SIZE);
+    inode_write(inode, buf, PAGE_SIZE, 0);
+    iput(inode);
+    free_kpage((u32)buf, 1);
     device_t *dev = device_find(DEV_KEYBOARD, 0);
     char ch;
     device_read(dev->dev, &ch, 1, 0, 0);
