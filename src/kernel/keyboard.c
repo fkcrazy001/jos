@@ -5,6 +5,7 @@
 #include <jp/mutex.h>
 #include <jp/fifo.h>
 #include <jp/device.h>
+#include <jp/task.h>
 
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_CTRL_PORT 0x64

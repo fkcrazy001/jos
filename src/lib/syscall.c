@@ -119,3 +119,18 @@ int link(const char *path, const char *new_path)
 {
     return _syscall2(SYS_NR_LINK, (u32)path, (u32)new_path);
 }
+
+int close(int fd)
+{
+    return _syscall1(SYS_NR_CLOSE, (u32)fd);
+}
+
+int open(const char *path, int flags, int mode)
+{
+    return _syscall3(SYS_NR_OPEN, (u32)path, (u32)flags, (u32)mode);
+}
+
+int creat(const char *path, int mode)
+{
+    return _syscall2(SYS_NR_CREATE, (u32)path, (u32)mode);
+}

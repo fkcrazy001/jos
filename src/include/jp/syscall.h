@@ -10,7 +10,10 @@ typedef enum {
     SYS_NR_EXIT = 1,
     SYS_NR_FORK = 2,
     SYS_NR_WRITE = 4,
+    SYS_NR_OPEN = 5,
+    SYS_NR_CLOSE = 6,
     SYS_NR_WAITPID = 7,
+    SYS_NR_CREATE = 8,
     SYS_NR_LINK = 9,
     SYS_NR_UNLINK = 10,
     SYS_NR_TIME = 13,
@@ -46,3 +49,8 @@ int mkdir(const char *path, uint16 mode);
 
 int unlink(const char *path);
 int link(const char *path, const char *new_path);
+
+int close(int fd);
+
+int open(const char *path, int flags, int mode);
+int creat(const char *path, int mode);

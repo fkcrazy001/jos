@@ -45,6 +45,28 @@ int32_t sys_getppid(void)
 {
     return current->ppid;
 }
+
+fd_t task_get_fd(task_t *task)
+{
+    fd_t fd;
+    // @todo: skip stdin stdout, stderr ?
+    for (fd = 3; fd < TASK_MAX_OPEN_FILE; ++fd) {
+        if (!task->files[fd]) {
+            return fd;
+        }
+    }
+    panic("task %s: too many open files", task->name);
+}
+
+void task_put_fd(task_t *task, fd_t fd)
+{
+    assert(fd < TASK_MAX_OPEN_FILE);
+    if (fd < 3)
+        return;
+    assert(task->files[fd]);
+    task->files[fd] = NULL;
+}
+
 /// @brief 找到除了自己之外的优先级最高的（tick最大的，或者jiffies最小的，一种调度算法吧）
 ///        call me in interrupt disable state
 /// @param state target state
@@ -343,7 +365,6 @@ int32_t task_fork(void)
     // do_schedule(); // ?
     return child->pid;
 }
-
 
 void task_exit(u32 status)
 {

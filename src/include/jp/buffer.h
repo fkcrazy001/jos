@@ -4,6 +4,7 @@
 
 #include <jp/list.h>
 #include <jp/device.h>
+#include <jp/mutex.h>
 
 #define BLOCK_SIZE 1024
 #define SECTOR_SIZE 512
@@ -14,11 +15,12 @@ typedef struct buffer {
     dev_t dev;
     u32 block;
     u32 pid;
-    int count; // ref cnt
+    int count; // ref cn, @todo: should be atomic
     list_node_t hnode;
     list_node_t rnode;
     bool dirty; // if this  is dirty
     bool valid; // if this is valid
+    lock_t lock;
 } buffer_t;
 
 buffer_t *getblk(dev_t dev, u32 block);

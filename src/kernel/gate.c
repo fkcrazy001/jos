@@ -31,15 +31,6 @@ static task_t *task = NULL;
 
 static u32 sys_test(void)
 {   
-    inode_t *inode = inode_open("/world.txt", O_RDWR | O_CREATE, 0755);
-    assert(inode);
-    char *buf = (char*)alloc_kpage(1);
-    assert(buf);
-    int i = inode_read(inode, buf, PAGE_SIZE, 0);
-    memset(buf, 'A', PAGE_SIZE);
-    inode_write(inode, buf, PAGE_SIZE, 0);
-    iput(inode);
-    free_kpage((u32)buf, 1);
     device_t *dev = device_find(DEV_KEYBOARD, 0);
     char ch;
     device_read(dev->dev, &ch, 1, 0, 0);
@@ -67,6 +58,10 @@ extern int sys_mkdir(u32 path, u32 mode);
 extern int sys_rmdir(u32 path);
 extern int sys_link(u32 path, u32 new_path);
 extern int sys_unlink(u32 path);
+
+extern int sys_open(u32 path, int flags, int mode);
+extern int sys_create(u32 path, int mode);
+extern int sys_close(fd_t fd);
 void syscall_init(void)
 {
     for (int i=0;i<SYSCALL_SIZE;++i) {
@@ -91,4 +86,8 @@ void syscall_init(void)
 
     syscall_table[SYS_NR_LINK] = (syscall_t)sys_link;
     syscall_table[SYS_NR_UNLINK] = (syscall_t)sys_unlink;
+
+    syscall_table[SYS_NR_OPEN] = (syscall_t)sys_open;
+    syscall_table[SYS_NR_CLOSE] = (syscall_t)sys_close;
+    syscall_table[SYS_NR_CREATE] = (syscall_t)sys_create;
 }

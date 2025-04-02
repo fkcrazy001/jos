@@ -6,6 +6,8 @@
 #include <jp/stdio.h>
 #include <jp/arena.h>
 #include <jp/stdlib.h>
+#include <jp/task.h>
+
 void idle_thread(void)
 {
     set_interrupt_state(true);
@@ -27,7 +29,9 @@ void user_init_thread(void)
 {
     u32 counter=0;
     char ch;
-    // mode_t mask = 0;
+    fd_t fd = open("/world.txt", O_RDWR|O_CREATE, 0755);
+    assert(fd);
+    close(fd);
     while (true)
     {
         // @todo user cant access kernel mm

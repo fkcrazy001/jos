@@ -1,5 +1,5 @@
-#ifndef __TASK_H__
-#define __TASK_H__
+#pragma once
+
 #include <jp/types.h>
 #include <jp/list.h>
 #include <jp/fs.h>
@@ -8,6 +8,7 @@
 #define NORMAL_USER 1000
 
 #define TASK_NAME_LEN 16
+#define TASK_MAX_OPEN_FILE 16
 
 typedef enum task_state {
     TASK_INIT,
@@ -39,6 +40,7 @@ typedef struct task {
     inode_t *ipwd; // process working dir
     inode_t *iroot; // process root
     mode_t umask; // 创建的文件的默认权限 ~umask
+    file_t *files[TASK_MAX_OPEN_FILE];
     u32 magic;
 } task_t;
 
@@ -102,4 +104,6 @@ int32_t sys_getppid(void);
 int32_t task_fork(void);
 void task_exit(u32 status);
 int32_t task_waitpid(int32_t pid, u32 *status);
-#endif
+
+void task_put_fd(task_t *task, fd_t fd);
+fd_t task_get_fd(task_t *task);

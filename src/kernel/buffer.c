@@ -3,6 +3,7 @@
 #include <jp/mutex.h>
 #include <jp/interrupt.h>
 #include <jp/debug.h>
+#include <jp/task.h>
 
 // mm layout
 /* |buffer_t|buffer_t|...|buffer_t|gap|block|...|block|block|*/
@@ -38,7 +39,7 @@ static int hash(union hash_key *key)
     return (key->k[0] ^ key->k[1] ^ key->k[2]) & (HASH_TLB_SIZE-1);
 }
 
-static buffer_t *hash_get(dev_t dev, u32 block, u32 pid)
+static buffer_t *hash_get_unsafe(dev_t dev, u32 block, u32 pid)
 {
     union hash_key k = {
         .block = block,
@@ -46,7 +47,6 @@ static buffer_t *hash_get(dev_t dev, u32 block, u32 pid)
         .pid = pid,
     };
     int h = hash(&k);
-    lock_up(&buffer_lock);
     buffer_t *pos, *tbuffer = NULL;
     list_for_each(pos, &buffer_hash_table[h], hnode) {
         if ( pos->dev == dev && pos->block == block
@@ -64,11 +64,10 @@ static buffer_t *hash_get(dev_t dev, u32 block, u32 pid)
         list_del(&tbuffer->rnode);
     }
 out:
-    lock_down(&buffer_lock);
     return tbuffer;
 }
 
-static void hash_insert(buffer_t *buf)
+static void hash_insert_unsafe(buffer_t *buf)
 {
     union hash_key k = {
         .block = buf->block,
@@ -76,13 +75,11 @@ static void hash_insert(buffer_t *buf)
         .pid = buf->pid
     };
     u32 h = hash(&k);
-    lock_up(&buffer_lock);
     list_add(&buffer_hash_table[h], &buf->hnode);
-    lock_down(&buffer_lock);
 }
 
 
-static void hash_remove(buffer_t *buf)
+static void hash_remove_unsafe(buffer_t *buf)
 {
     union hash_key k = {
         .block = buf->block,
@@ -92,13 +89,11 @@ static void hash_remove(buffer_t *buf)
     u32 h = hash(&k);
     
     assert(list_search(&buffer_hash_table[h], &buf->hnode));
-    lock_up(&buffer_lock);
     list_del(&buf->hnode);
-    lock_down(&buffer_lock);
 }
 
 
-static buffer_t *get_new_buffer(void)
+static buffer_t *get_new_buffer_unsafe(void)
 {
     assert(!get_interrupt_state());
     buffer_t *buf = NULL;
@@ -111,6 +106,7 @@ static buffer_t *get_new_buffer(void)
         buf->count = 0;
         buf->dirty = false;
         buf->valid = false;
+        lock_init(&buf->lock);
         node_init(&buf->rnode);
         node_init(&buf->hnode);
         buf_addr++;
@@ -120,42 +116,51 @@ static buffer_t *get_new_buffer(void)
     return buf;
 }
 
-static buffer_t *get_free_buffer(void)
+// 1. get from new buffer
+// 2. get from free list
+static buffer_t *get_free_buffer_unsafe(void)
 {
     buffer_t *bf = NULL;
-    while (true) {
-        bf = get_new_buffer();
-        if (bf)
-            return bf;
-        lock_up(&buffer_lock);
-        if (!list_empty(&free_list)) {
-            bf = container_of(buffer_t, rnode, list_tail_pop(&free_list));
-            hash_remove(bf); // this buf will be use by other process to other block, del from origin hashlist
-            lock_down(&buffer_lock);
-            return bf;
-        }
-        lock_down(&buffer_lock);
-        task_block(current, &wait_list, TASK_BLOCKED);
+    bf = get_new_buffer_unsafe();
+    if (bf) {
+        return bf;
     }
-    panic("can't happened");
+    if (!list_empty(&free_list)) {
+        bf = container_of(buffer_t, rnode, list_tail_pop(&free_list));
+        hash_remove_unsafe(bf); // this buf will be use by other process to other block, del from origin hashlist
+        lock_down(&buffer_lock);
+        return bf;
+    }
+    return bf;
 }
 
+// this api may block
 buffer_t *getblk(dev_t dev, u32 block)
 {
     u32 pid = current->pid;
-    buffer_t *bf = hash_get(dev, block, pid);
+    buffer_t *bf = NULL;
+again:
+    lock_up(&buffer_lock);
+    bf = hash_get_unsafe(dev, block, pid);
     if (bf) {
-        assert(bf->valid);
-        return bf;
+        bf->count++;
+        goto out;
     }
-    bf = get_free_buffer();
+    bf = get_free_buffer_unsafe();
+    if (!bf) {
+        lock_down(&buffer_lock);
+        task_block(current, &wait_list, TASK_BLOCKED);
+        goto again;
+    }
     assert(bf && bf->count == 0 && !bf->dirty);
     
     bf->count = 1;
     bf->block = block;
     bf->dev = dev;
     bf->pid = pid;
-    hash_insert(bf);
+    hash_insert_unsafe(bf);
+out:
+    lock_down(&buffer_lock);
     return bf;
 }
 
@@ -164,33 +169,39 @@ buffer_t *bread(dev_t dev, u32 block)
     buffer_t *bf = getblk(dev, block);
     assert(bf);
     if (bf->valid) {
-        bf->count++;
         return bf;
     }
-    device_requset(dev, bf->data, BLOCK_SECS, bf->block * BLOCK_SECS, 0, REQ_READ);
-    bf->dirty = false;
-    bf->valid = true;
+    lock_up(&bf->lock);
+    if (!bf->valid) {
+        device_requset(dev, bf->data, BLOCK_SECS, bf->block * BLOCK_SECS, 0, REQ_READ);
+        bf->dirty = false;
+        bf->valid = true;
+    }
+    lock_down(&bf->lock);
     return bf;
 }
 
 void bwrite(buffer_t *buf)
 {
     assert(buf);
+    lock_up(&buf->lock);
     if (!buf->dirty)
-        return;
+        goto out;
     device_requset(buf->dev, buf->data, BLOCK_SECS, buf->block * BLOCK_SECS, 0, REQ_WRITE);
     buf->dirty = false;
     buf->valid = true;
+out:
+    lock_down(&buf->lock);
 }
 
 void brelease(buffer_t *buf)
 {
     assert(buf);
+    lock_up(&buf->lock);
     buf->count--;
     assert(buf->count>=0);
     // do it now?
     bwrite(buf);
-    lock_up(&buffer_lock);
     if (!buf->count) {
         assert(node_is_init(&buf->rnode));
         list_add(&free_list, &buf->rnode);
@@ -200,7 +211,7 @@ void brelease(buffer_t *buf)
         assert(task->magic == J_MAGIC);
         task_unblock(task);
     }
-    lock_down(&buffer_lock);
+    lock_down(&buf->lock);
 }
 
 void buffer_init(void)

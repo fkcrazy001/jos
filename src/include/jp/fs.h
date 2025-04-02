@@ -113,6 +113,14 @@ typedef struct super_block {
     inode_t *imount; // 安装到的inode
 } super_block_t;
 
+typedef struct file {
+    inode_t *inode;
+    u32 count;
+    int offset; // offset of file
+    int flags; // flags of file: rw or whatever
+    int mode; // mode of this file 0755
+} file_t;
+
 super_block_t* get_super(dev_t dev);
 super_block_t* read_super(dev_t dev);
 
