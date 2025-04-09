@@ -31,25 +31,15 @@ static task_t *task = NULL;
 
 static u32 sys_test(void)
 {   
-    device_t *dev = device_find(DEV_KEYBOARD, 0);
-    char ch;
-    device_read(dev->dev, &ch, 1, 0, 0);
-    dev = device_find(DEV_CONSOLE, 0);
-    device_write(dev->dev, &ch, 1, 0, 0);
+    // device_t *dev = device_find(DEV_KEYBOARD, 0);
+    // char ch;
+    // device_read(dev->dev, &ch, 1, 0, 0);
+    // dev = device_find(DEV_CONSOLE, 0);
+    // device_write(dev->dev, &ch, 1, 0, 0);
     return 255;
 }
 
 extern int console_write();
-
-static int32_t sys_write(u32 fd, u32 buf, u32 len)
-{
-    // @todo buf is user va, transfer to pa
-    if (fd == stdout || fd == stderr) {
-        return console_write(0, (char*)buf, len);
-    }
-    panic("write!!!");
-    return -1;
-}
 
 extern void task_yield(void);
 extern time_t sys_time(void);
@@ -62,6 +52,9 @@ extern int sys_unlink(u32 path);
 extern int sys_open(u32 path, int flags, int mode);
 extern int sys_create(u32 path, int mode);
 extern int sys_close(fd_t fd);
+
+extern int sys_write(fd_t fd, u32 buf_addr, u32 len);
+extern int sys_read(fd_t fd, u32 buf_addr, u32 len);
 void syscall_init(void)
 {
     for (int i=0;i<SYSCALL_SIZE;++i) {
@@ -70,6 +63,7 @@ void syscall_init(void)
     syscall_table[SYS_NR_TEST] = (syscall_t)sys_test;
     syscall_table[SYS_NR_SLEEP] = (syscall_t)task_sleep;
     syscall_table[SYS_NR_YIELD] = (syscall_t)task_yield;
+    syscall_table[SYS_NR_READ] = (syscall_t)sys_read;
     syscall_table[SYS_NR_WRITE] = (syscall_t)sys_write;
     syscall_table[SYS_NR_BRK] = (syscall_t)sys_brk;
 

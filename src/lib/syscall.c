@@ -56,10 +56,6 @@ void sleep(u32 ms)
     _syscall1(SYS_NR_SLEEP, ms);
 }
 
-int32_t write(fd_t fd, char *buf, u32 len)
-{
-    return _syscall3(SYS_NR_WRITE, fd, (u32)buf, len);
-}
 // addr must be page start
 int32_t brk(char *addr)
 {
@@ -133,4 +129,14 @@ int open(const char *path, int flags, int mode)
 int creat(const char *path, int mode)
 {
     return _syscall2(SYS_NR_CREATE, (u32)path, (u32)mode);
+}
+
+int32_t read(int fd, char *buf, size_t len)
+{
+    return _syscall3(SYS_NR_READ, (u32)fd, (u32)buf, (u32)len);
+}
+
+int32_t write(int fd, const char *buf, size_t len)
+{
+    return _syscall3(SYS_NR_WRITE, (u32)fd, (u32)buf, (u32)len);
 }

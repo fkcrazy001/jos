@@ -28,15 +28,25 @@ void task_to_user_mode(task_func f);
 void user_init_thread(void)
 {
     u32 counter=0;
-    char ch;
-    fd_t fd = open("/world.txt", O_RDWR|O_CREATE, 0755);
+    char buf[256];
+    fd_t fd = open("/hello.txt", O_RDWR, 0755);
     assert(fd);
+    int len = read(fd, buf, 256);
+    printf("hello.txt read %s, length %d\n", buf, len);
     close(fd);
+
+    fd = open("/world.txt", O_RDWR|O_CREATE, 0755);
+    len = write(fd, (const char *)buf, len);
+    close(fd);
+
     while (true)
     {
         // @todo user cant access kernel mm
         // *(char*)0xB8000 = 'b';
-        sleep(1000);
+        char ch;
+        read(stdin, &ch, 1);
+        write(stdout, (const char *)&ch, 1);
+        sleep(10);
         // printf("old is %d\n", umask(mask++));
     }
 }
@@ -57,7 +67,6 @@ void test_thread(void)
     // unlink("/hello.txt");
     while (true)
     {
-        test();
         sleep(10);
     }
 }

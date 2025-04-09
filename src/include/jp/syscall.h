@@ -9,6 +9,7 @@ typedef enum {
     SYS_NR_TEST,
     SYS_NR_EXIT = 1,
     SYS_NR_FORK = 2,
+    SYS_NR_READ = 3,
     SYS_NR_WRITE = 4,
     SYS_NR_OPEN = 5,
     SYS_NR_CLOSE = 6,
@@ -31,7 +32,10 @@ void yield(void);
 // sleep ms ms, min is 10ms
 void sleep(u32 ms);
 
-int32_t write(fd_t fd, char *buf, u32 len);
+
+int32_t read(int fd, char *buf, u32 len);
+int32_t write(fd_t fd, const char *buf, u32 len);
+
 int32_t brk(char *addr);
 int32_t getpid(void);
 int32_t getppid(void);

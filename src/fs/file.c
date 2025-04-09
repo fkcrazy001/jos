@@ -80,3 +80,55 @@ int sys_close(fd_t fd)
     task_put_fd(task, fd);
     return 0;
 }
+
+int sys_read(fd_t fd, u32 buf_addr, u32 size)
+{
+    assert(fd < TASK_MAX_OPEN_FILE);
+    // @todo check buf_addr
+    char *buf = (char *)buf_addr;
+
+    if (fd == stdin) {
+        device_t *dev = device_find(DEV_KEYBOARD, 0);
+        assert(dev);
+        return device_read(dev->dev, buf, size, 0, 0);
+    }
+
+    task_t *task = current;
+    file_t *f = task->files[fd];
+    if (!f || !f->inode || (f->flags & O_ACCMODE == O_WRONLY)) {
+        DEBUGK("invalid fd %d get, file %p", fd, f);
+        return EOF;
+    }
+    inode_t *inode = f->inode;
+    int len = inode_read(inode, buf, size, f->offset);
+    if (len != EOF) {
+        f->offset += len;
+    }
+    return len;
+}
+
+int sys_write(fd_t fd, u32 buf_addr, u32 size)
+{
+    assert(fd < TASK_MAX_OPEN_FILE);
+    // @todo check buf_addr
+    char *buf = (char *)buf_addr;
+
+    if (fd == stdout || fd == stderr) {
+        device_t *dev = device_find(DEV_CONSOLE, 0);
+        assert(dev);
+        return device_write(dev->dev, buf, size, 0, 0);
+    }
+
+    task_t *task = current;
+    file_t *f = task->files[fd];
+    if (!f || !f->inode || (f->flags & O_ACCMODE == O_RDONLY)) {
+        DEBUGK("invalid fd %d get, file %p", fd, f);
+        return EOF;
+    }
+    inode_t *inode = f->inode;
+    int len = inode_write(inode, buf, size, f->offset);
+    if (len != EOF) {
+        f->offset += len;
+    }
+    return len;
+}
