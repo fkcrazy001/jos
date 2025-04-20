@@ -56,6 +56,10 @@ extern int sys_close(fd_t fd);
 extern int sys_write(fd_t fd, u32 buf_addr, u32 len);
 extern int sys_read(fd_t fd, u32 buf_addr, u32 len);
 extern int sys_lseek(fd_t fd, int offset, int whence);
+
+extern int sys_chdir(u32 newpath);
+extern int sys_chroot(u32 new_root);
+extern char* sys_getcwd(u32 user_ptr, size_t size);
 void syscall_init(void)
 {
     for (int i=0;i<SYSCALL_SIZE;++i) {
@@ -87,4 +91,8 @@ void syscall_init(void)
     syscall_table[SYS_NR_CREATE] = (syscall_t)sys_create;
 
     syscall_table[SYS_NR_LSEEK] = (syscall_t)sys_lseek;
+
+    syscall_table[SYS_NR_CHDIR]= (syscall_t)sys_chdir;
+    syscall_table[SYS_NR_CHROOT] = (syscall_t)sys_chroot;
+    syscall_table[SYS_NR_GETCWD] = (syscall_t)sys_getcwd;
 }

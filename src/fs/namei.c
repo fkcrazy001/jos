@@ -5,6 +5,8 @@
 #include <jp/string.h>
 #include <jp/syscall.h>
 #include <jp/task.h>
+#include <jp/stdlib.h>
+#include <jp/memory.h>
 
 // 文件名是否相等
 // name = "hello/world"
@@ -645,6 +647,132 @@ out:
     if (dir)
         iput(dir);
     return file;
+}
+
+
+char* sys_getcwd(u32 user_ptr, size_t size)
+{
+    // @fix me: check user ptr
+    task_t *task = current;
+    char *path = (char *)user_ptr;
+    strncpy(path, task->pwd, MIN(PAGE_SIZE, size));
+    return path;
+}
+
+// calculate diff between pwd and  save new path to pwd
+// 计算 当前路径 pwd 和新路径 pathname, 存入 pwd
+void abspath(char *pwd, const char *pathname)
+{
+    char *cur = NULL;
+    char *ptr = NULL;
+
+    if (IS_SEPARATOR(pathname[0])) {
+        cur = pwd + 1;
+        *cur = 0;
+        pathname++;
+    } else {
+        cur = strrsep(pwd) + 1;
+        *cur = 0;
+    }
+
+    while (pathname[0]) {
+        ptr = strsep(pathname);
+        if (!ptr) {
+            break;
+        }
+
+        int len = (ptr - pathname) + 1;
+        *ptr = '/';
+        if (!memcmp(pathname, "./", 2)) {
+
+        } else if (!memcmp(pathname, "../", 3)) {
+            if (cur - 1 != pwd) {
+                *(cur - 1) = 0;
+                cur = strrsep(pwd) + 1;
+                *cur = 0;
+            }
+        } else {
+            strncpy(cur, pathname, len + 1);
+            cur += len;
+        }
+        pathname += len;
+    }
+
+    if (!pathname[0])
+        return;
+
+    if (!strcmp(pathname, "."))
+        return;
+
+    if (strcmp(pathname, "..")) {
+        strcpy(cur, pathname);
+        cur += strlen(pathname);
+        *cur = '/';
+        return;
+    }
+    if (cur - 1 != pwd) {
+        *(cur - 1) = 0;
+        cur = strrsep(pwd) + 1;
+        *cur = 0;
+    }
+}
+
+int sys_chdir(u32 newpath)
+{
+    int ret = 0;
+    // @todo: check valid of newpath ptr
+    const char *path = (const char*)newpath;
+    inode_t *new_dir_inode = namei(path);
+    task_t *task = current;
+    
+    if (!new_dir_inode || !ISDIR(new_dir_inode->desc->mode)) {
+        WARNK("new [path %s] may be not a dir", path);
+        if (new_dir_inode) {
+            iput(new_dir_inode);
+        }
+        ret = -1;
+        goto out;
+    }
+    if (new_dir_inode == task->ipwd) {
+        DEBUGK("new dir and pwd inode the same");
+        goto out;
+    }
+    
+    abspath(task->pwd, path);
+    iput(task->ipwd);
+    task->ipwd = new_dir_inode;
+out:
+    return ret;
+}
+
+int sys_chroot(u32 new_root)
+{
+    int ret = 0;
+    // @todo: check valid of newpath ptr
+    const char *new_root_path = (const char*)new_root;
+    inode_t *new_root_inode = namei(new_root_path);
+    task_t *task = current;
+    
+    if (!new_root_inode || !ISDIR(new_root_inode->desc->mode)) {
+        WARNK("new [path %s] may be not a dir", new_root_path);
+        if (new_root_inode) {
+            iput(new_root_inode);
+        }
+        ret = -1;
+        goto out;
+    }
+    if (new_root_inode == task->ipwd) {
+        DEBUGK("new dir and pwd inode the same");
+        goto out;
+    }
+    iput(task->iroot);
+    iput(task->ipwd);
+    strcpy(task->pwd, "/");
+    task->iroot = new_root_inode;
+    new_root_inode->count += 1;
+    task->ipwd = new_root_inode;
+out:
+    return ret;
 }
 
 #include <jp/memory.h>

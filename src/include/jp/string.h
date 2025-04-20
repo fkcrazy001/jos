@@ -11,8 +11,8 @@ size_t strnlen(const char *str, size_t maxlen);
 int strcmp(const char *lhs, const char *rhs);
 char *strchr(const char *str, int ch);
 char *strrchr(const char *str, int ch);
-const char *strsep(const char *str);
-const char *strrsep(const char *str);
+char *strsep(const char *str);
+char *strrsep(const char *str);
 
 int memcmp(const void *lhs, const void *rhs, size_t count);
 void *memset(void *dest, int ch, size_t count);

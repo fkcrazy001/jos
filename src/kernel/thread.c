@@ -28,12 +28,11 @@ void task_to_user_mode(task_func f);
 void user_init_thread(void)
 {
     u32 counter=0;
-    char buf[] = "content from user init thread";
-    fd_t fd = open("/hello.txt", O_RDWR, 0755);
-    assert(fd);
-    assert(0 <= lseek(fd, 5, SEEK_SET));
-    write(fd, (const char *)buf, sizeof(buf));
-    close(fd);
+    char buf[256];
+    chdir("d1");
+    printf("get cwd: %s\n", getcwd(buf, sizeof(buf)));
+    chroot("d2");
+    printf("get cwd: %s\n", getcwd(buf, sizeof(buf)));
 
     while (true)
     {

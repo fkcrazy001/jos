@@ -17,6 +17,7 @@ typedef enum {
     SYS_NR_CREATE = 8,
     SYS_NR_LINK = 9,
     SYS_NR_UNLINK = 10,
+    SYS_NR_CHDIR = 12,
     SYS_NR_TIME = 13,
     SYS_NR_LSEEK=19,
     SYS_NR_GETPID = 20,
@@ -24,9 +25,11 @@ typedef enum {
     SYS_NR_RMDIR = 40,
     SYS_NR_BRK= 45,
     SYS_NR_UMASK=60,
+    SYS_NR_CHROOT = 61,
     SYS_NR_GETPPID = 64,
     SYS_NR_YIELD = 158,
     SYS_NR_SLEEP = 162,
+    SYS_NR_GETCWD = 183,
 } syscall_e;
 u32 test(void);
 void yield(void);
@@ -60,3 +63,7 @@ int close(int fd);
 int open(const char *path, int flags, int mode);
 int creat(const char *path, int mode);
 int32_t lseek(int fd, int offset, int mode);
+
+char *getcwd(char *path, size_t size);
+int chroot(const char *path);
+int chdir(const char *path);

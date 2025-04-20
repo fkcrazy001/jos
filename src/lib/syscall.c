@@ -145,3 +145,18 @@ int32_t lseek(int fd, int offset, int mode)
 {
     return _syscall3(SYS_NR_LSEEK, (u32)fd, (u32)offset, (u32)mode);
 }
+
+char *getcwd(char *path, size_t size)
+{
+    return (char*)_syscall2(SYS_NR_GETCWD, (u32)path, (u32)size);
+}
+
+int chroot(const char *path)
+{
+    return _syscall1(SYS_NR_CHROOT, (u32)path);
+}
+
+int chdir(const char *path)
+{
+    return _syscall1(SYS_NR_CHDIR, (u32)path);
+}

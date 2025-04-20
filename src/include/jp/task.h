@@ -39,6 +39,7 @@ typedef struct task {
     struct bitmap_t *vmap;//va map
     inode_t *ipwd; // process working dir
     inode_t *iroot; // process root
+    char *pwd;
     mode_t umask; // 创建的文件的默认权限 ~umask
     file_t *files[TASK_MAX_OPEN_FILE];
     u32 magic;

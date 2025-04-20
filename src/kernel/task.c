@@ -238,6 +238,9 @@ static task_t* task_create(task_func fn,  const char* name, u32 priority, u32 ui
     task->vmap = &kernel_map;
     task->iroot = get_root_inode();
     task->ipwd = get_root_inode();
+    task->pwd = (void*)alloc_kpage(1);
+    strcpy(task->pwd, "/");
+
     task->umask = (mode_t)0022;
     node_init(&task->node);
     return task;
@@ -359,12 +362,29 @@ int32_t task_fork(void)
     child->vmap->bits = (char*)(child->vmap+1);
 
     child->pde = (u32)copy_pde();
+
+    // pwd
+    child->pwd = (char*)alloc_kpage(1);
+    strncpy(child->pwd, t->pwd, PAGE_SIZE);
+    child->iroot = get_root_inode();
+    child->ipwd = get_root_inode();
+
+    // file ref
+    for (size_t fd = 0; fd < TASK_MAX_OPEN_FILE; ++fd) {
+        file_t *file = child->files[fd];
+        if (file) {
+            file->count += 1;
+        }
+    }
     
     task_build_stk(child); // build child task stack
 
     // do_schedule(); // ?
     return child->pid;
 }
+
+extern int sys_close(fd_t fd);
+
 
 void task_exit(u32 status)
 {
@@ -385,6 +405,16 @@ void task_exit(u32 status)
         // parent is waiting for me to die...
         task_unblock(parent);
     }
+    // file ref
+    for (fd_t fd = 0; fd < TASK_MAX_OPEN_FILE; ++fd) {
+        file_t *file = t->files[fd];
+        if (file) {
+            sys_close(fd);
+        }
+    }
+    iput(t->ipwd);
+    iput(t->iroot);
+    free_kpage((u32)t->pwd, 1);
     free_pde();
     kfree(t->vmap);
     // @todo: wait() syscall, parent get status and free `t`

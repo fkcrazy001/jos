@@ -109,11 +109,10 @@ int memcmp(const void *lhs, const void *rhs, size_t count)
 {
     char *lptr = (char *)lhs;
     char *rptr = (char *)rhs;
-    while ((count > 0) && *lptr == *rptr)
+    while ((count-- > 0) && *lptr == *rptr)
     {
         lptr++;
         rptr++;
-        count--;
     }
     if (count == 0)
         return 0;
@@ -158,9 +157,9 @@ void *memchr(const void *str, int ch, size_t count)
 #define IS_SEPARATOR(c) (c == SEPARATOR1 || c == SEPARATOR2) // 字符是否位目录分隔符
 
 // 获取第一个分隔符
-const char *strsep(const char *str)
+char *strsep(const char *str)
 {
-    const char *ptr = (char *)str;
+    char *ptr = (char *)str;
     while (true)
     {
         if (IS_SEPARATOR(*ptr))
@@ -175,15 +174,15 @@ const char *strsep(const char *str)
 }
 
 // 获取最后一个分隔符
-const char *strrsep(const char *str)
+char *strrsep(const char *str)
 {
-    const char *last = NULL;
+    char *last = NULL;
     const char *ptr = str;
     while (true)
     {
         if (IS_SEPARATOR(*ptr))
         {
-            last = ptr;
+            last = (char*)ptr;
         }
         if (*ptr++ == EOS)
         {

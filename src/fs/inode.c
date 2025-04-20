@@ -11,7 +11,9 @@ static inode_t inode_table[INODE_MAX];
 
 inode_t *get_root_inode(void)
 {
-    return &inode_table[0]; // 0 is always root
+    inode_t *root = &inode_table[0];
+    root->count += 1;
+    return root; // 0 is always root
 }
 
 static inode_t* inode_get_free(void)
