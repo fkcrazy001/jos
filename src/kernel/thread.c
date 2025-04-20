@@ -28,15 +28,11 @@ void task_to_user_mode(task_func f);
 void user_init_thread(void)
 {
     u32 counter=0;
-    char buf[256];
+    char buf[] = "content from user init thread";
     fd_t fd = open("/hello.txt", O_RDWR, 0755);
     assert(fd);
-    int len = read(fd, buf, 256);
-    printf("hello.txt read %s, length %d\n", buf, len);
-    close(fd);
-
-    fd = open("/world.txt", O_RDWR|O_CREATE, 0755);
-    len = write(fd, (const char *)buf, len);
+    assert(0 <= lseek(fd, 5, SEEK_SET));
+    write(fd, (const char *)buf, sizeof(buf));
     close(fd);
 
     while (true)

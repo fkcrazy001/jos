@@ -55,6 +55,7 @@ extern int sys_close(fd_t fd);
 
 extern int sys_write(fd_t fd, u32 buf_addr, u32 len);
 extern int sys_read(fd_t fd, u32 buf_addr, u32 len);
+extern int sys_lseek(fd_t fd, int offset, int whence);
 void syscall_init(void)
 {
     for (int i=0;i<SYSCALL_SIZE;++i) {
@@ -84,4 +85,6 @@ void syscall_init(void)
     syscall_table[SYS_NR_OPEN] = (syscall_t)sys_open;
     syscall_table[SYS_NR_CLOSE] = (syscall_t)sys_close;
     syscall_table[SYS_NR_CREATE] = (syscall_t)sys_create;
+
+    syscall_table[SYS_NR_LSEEK] = (syscall_t)sys_lseek;
 }

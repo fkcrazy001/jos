@@ -121,6 +121,12 @@ typedef struct file {
     int mode; // mode of this file 0755
 } file_t;
 
+typedef enum whence {
+    SEEK_SET, // set directly, offset=0
+    SEEK_CUR, // set by cur, offset=cur
+    SEEK_END,// set end,offset=filesize,
+}whence_e;
+
 super_block_t* get_super(dev_t dev);
 super_block_t* read_super(dev_t dev);
 

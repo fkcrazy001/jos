@@ -140,3 +140,8 @@ int32_t write(int fd, const char *buf, size_t len)
 {
     return _syscall3(SYS_NR_WRITE, (u32)fd, (u32)buf, (u32)len);
 }
+
+int32_t lseek(int fd, int offset, int mode)
+{
+    return _syscall3(SYS_NR_LSEEK, (u32)fd, (u32)offset, (u32)mode);
+}

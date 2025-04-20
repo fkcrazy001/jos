@@ -18,6 +18,7 @@ typedef enum {
     SYS_NR_LINK = 9,
     SYS_NR_UNLINK = 10,
     SYS_NR_TIME = 13,
+    SYS_NR_LSEEK=19,
     SYS_NR_GETPID = 20,
     SYS_NR_MKDIR = 39,
     SYS_NR_RMDIR = 40,
@@ -58,3 +59,4 @@ int close(int fd);
 
 int open(const char *path, int flags, int mode);
 int creat(const char *path, int mode);
+int32_t lseek(int fd, int offset, int mode);

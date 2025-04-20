@@ -132,3 +132,28 @@ int sys_write(fd_t fd, u32 buf_addr, u32 size)
     }
     return len;
 }
+
+int sys_lseek(fd_t fd, int offset, whence_e whence)
+{
+    task_t *task = current;
+    assert(fd<TASK_MAX_OPEN_FILE);
+    file_t *file = task->files[fd];
+    assert(file && file->inode);
+    switch (whence)
+    {
+    case SEEK_SET:
+        file->offset = offset;
+        break;
+    case SEEK_CUR:
+        file->offset += offset;
+        break;
+    case SEEK_END:
+        file->offset = file->inode->desc->size+offset;
+        break;
+    default:
+        WARNK("invalid param");
+        return -1;
+    }
+    assert(file->offset>=0);
+    return file->offset;
+}
