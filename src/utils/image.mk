@@ -16,11 +16,11 @@ $(BUILD)/master.img: $(BUILD)/boot/boot.bin \
 	sfdisk $@ < $(SRC)/utils/master.sfdisk
 
 # 制作文件系统
-	sudo losetup /dev/loop0 --partscan $@
+	sudo losetup /dev/loop253 --partscan $@
 
-	sudo mkfs.minix -1 -n 14 /dev/loop0p1
+	sudo mkfs.minix -1 -n 14 /dev/loop253p1
 
-	sudo mount /dev/loop0p1 /mnt
+	sudo mount /dev/loop253p1 /mnt
 
 	sudo chown ${USER} /mnt
 
@@ -33,17 +33,17 @@ $(BUILD)/master.img: $(BUILD)/boot/boot.bin \
 
 	sudo umount /mnt
 
-	sudo losetup -d /dev/loop0
+	sudo losetup -d /dev/loop253
 
 $(BUILD)/slave.img:
 	yes | bximage -q -hd=32 -func=create -sectsize=512 -imgmode=flat $@
 # 开始分区
 	sfdisk $@ < $(SRC)/utils/slave.sfdisk
-	sudo losetup /dev/loop0 --partscan $@
+	sudo losetup /dev/loop254 --partscan $@
 
-	sudo mkfs.minix -1 -n 14 /dev/loop0p1
+	sudo mkfs.minix -1 -n 14 /dev/loop254p1
 
-	sudo mount /dev/loop0p1 /mnt
+	sudo mount /dev/loop254p1 /mnt
 
 	sudo chown ${USER} /mnt
 
@@ -51,7 +51,7 @@ $(BUILD)/slave.img:
 
 	sudo umount /mnt
 
-	sudo losetup -d /dev/loop0
+	sudo losetup -d /dev/loop254
 
 IMAGES:= $(BUILD)/master.img $(BUILD)/slave.img
 
@@ -59,22 +59,22 @@ image: $(IMAGES)
 
 .PHONY: mount0
 mount0: $(BUILD)/master.img
-	sudo losetup /dev/loop0 --partscan $<
-	sudo mount /dev/loop0p1 /mnt
+	sudo losetup /dev/loop253 --partscan $<
+	sudo mount /dev/loop253p1 /mnt
 	sudo chown ${USER} /mnt
 
 .PHONY: umount0
-umount0: /dev/loop0
+umount0: /dev/loop253
 	sudo umount /mnt
 	sudo losetup -d $<
 
 .PHONY: mount1
 mount1: $(BUILD)/slave.img
-	sudo losetup /dev/loop1 --partscan $<
-	sudo mount /dev/loop1p1 /mnt
+	sudo losetup /dev/loop254 --partscan $<
+	sudo mount /dev/loop254p1 /mnt
 	sudo chown ${USER} /mnt
 
 .PHONY: umount1
-umount1: /dev/loop1
+umount1: /dev/loop254
 	sudo umount /mnt
 	sudo losetup -d $<

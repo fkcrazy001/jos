@@ -157,3 +157,8 @@ int sys_lseek(fd_t fd, int offset, whence_e whence)
     assert(file->offset>=0);
     return file->offset;
 }
+
+int sys_readdir(fd_t fd, u32 buffer_addr, u32 count)
+{
+    return sys_read(fd, buffer_addr, sizeof(dirent_t));
+}

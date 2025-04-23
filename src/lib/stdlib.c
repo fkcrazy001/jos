@@ -29,3 +29,24 @@ u32 div_round_up(u32 num, u32 size)
 {
     return (num + size - 1) / size;
 }
+
+int atoi(const char *str)
+{
+    if (str == NULL)
+        return 0;
+    int sign = 1;
+    int res = 0;
+    if (*str == '-'){
+        sign = -1;
+        str++;
+    }
+    while(*str) {
+        char c = *str;
+        if (c < '0' || c > '9') {
+            return 0;
+        }
+        res = res * 10 + c - '0';
+        str++;
+    }
+    return sign * res;
+}

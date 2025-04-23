@@ -73,6 +73,8 @@ $(BUILD)/kernel.bin: $(BUILD)/kernel/start.o \
 					$(BUILD)/lib/list.o \
 					$(BUILD)/lib/fifo.o \
 					$(BUILD)/lib/printf.o \
+					$(BUILD)/builtin/osh.o \
+
 
 	$(shell mkdir -p $(dir $@))
 	ld  ${LDFLAGS} $^ -o $@

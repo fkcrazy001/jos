@@ -127,6 +127,8 @@ typedef enum whence {
     SEEK_END,// set end,offset=filesize,
 }whence_e;
 
+typedef dentry_t dirent_t;
+
 super_block_t* get_super(dev_t dev);
 super_block_t* read_super(dev_t dev);
 

@@ -36,6 +36,7 @@ static u32 sys_test(void)
     // device_read(dev->dev, &ch, 1, 0, 0);
     // dev = device_find(DEV_CONSOLE, 0);
     // device_write(dev->dev, &ch, 1, 0, 0);
+    DEBUGK("syscall 0 called");
     return 255;
 }
 
@@ -46,6 +47,7 @@ extern time_t sys_time(void);
 extern mode_t sys_umask(mode_t umask);
 extern int sys_mkdir(u32 path, u32 mode);
 extern int sys_rmdir(u32 path);
+extern int sys_readdir(fd_t fd, u32 buf_addr, u32 count);
 extern int sys_link(u32 path, u32 new_path);
 extern int sys_unlink(u32 path);
 
@@ -91,8 +93,11 @@ void syscall_init(void)
     syscall_table[SYS_NR_CREATE] = (syscall_t)sys_create;
 
     syscall_table[SYS_NR_LSEEK] = (syscall_t)sys_lseek;
+    syscall_table[SYS_NR_READDIR] = (syscall_t)sys_readdir;
 
     syscall_table[SYS_NR_CHDIR]= (syscall_t)sys_chdir;
     syscall_table[SYS_NR_CHROOT] = (syscall_t)sys_chroot;
     syscall_table[SYS_NR_GETCWD] = (syscall_t)sys_getcwd;
+
+    syscall_table[SYS_NR_CLEAR] = (syscall_t)console_clear;
 }

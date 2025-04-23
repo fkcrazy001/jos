@@ -9,7 +9,7 @@ bochsg:$(IMAGES)
 
 QEMU:= qemu-system-i386 #i386
 QEMU+= -m 32M  # 32M mm
-QEMU+= -audiodev pa,id=hda # 音频设备 
+QEMU+= -audiodev wav,id=hda # 音频设备 
 QEMU+= -machine pcspk-audiodev=hda  # pc speaker设备
 QEMU+= -rtc base=localtime  #设备本地时间
 QEMU+= -drive file=$(BUILD)/master.img,if=ide,index=0,media=disk,format=raw #主硬盘

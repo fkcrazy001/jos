@@ -590,10 +590,16 @@ inode_t *inode_open(const char *pathname, int flags, int mode)
     const char *next = NULL;
 
     dir = named(pathname, &next);
-    if (!dir || !*next) {
-        DEBUGK("input file name invalid: %s", pathname);
+    if (!dir) {
+        DEBUGK("input file name invalid: %s\n", pathname);
         goto out;
     }
+
+    if (!*next) {
+        DEBUGK("open dir: %s\n", pathname);
+        return dir;
+    }
+
     if ((flags & O_TRUNC) && (flags & O_ACCMODE) == O_RDONLY) {
         DEBUGK("trunc but with only read flag, we give it a write permit");
         flags |= O_WRONLY;
@@ -632,8 +638,14 @@ inode_t *inode_open(const char *pathname, int flags, int mode)
     file->desc->uid = task->uid;
 makeup:
     assert(file);
-    if (ISDIR(file->desc->mode) || !permission(file, flags&O_ACCMODE)) {
+    if (!permission(file, flags&O_ACCMODE)) {
         DEBUGK("permission check failed");
+        iput(file);
+        file = NULL;
+        goto out;
+    }
+    if (ISDIR(file->desc->mode) && flags & O_ACCMODE != O_RDONLY) {
+        DEBUGK("open dir is read only");
         iput(file);
         file = NULL;
         goto out;

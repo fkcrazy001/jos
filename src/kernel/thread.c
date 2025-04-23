@@ -23,26 +23,25 @@ void idle_thread(void)
     }
 }
 
-extern u32 keyboard_read(char *buf, u32 count);
 void task_to_user_mode(task_func f);
+
+extern void osh_main(void);
 void user_init_thread(void)
 {
-    u32 counter=0;
-    char buf[256];
-    chdir("d1");
-    printf("get cwd: %s\n", getcwd(buf, sizeof(buf)));
-    chroot("d2");
-    printf("get cwd: %s\n", getcwd(buf, sizeof(buf)));
-
+    int status;
     while (true)
     {
         // @todo user cant access kernel mm
         // *(char*)0xB8000 = 'b';
-        char ch;
-        read(stdin, &ch, 1);
-        write(stdout, (const char *)&ch, 1);
-        sleep(10);
-        // printf("old is %d\n", umask(mask++));
+        int pid = fork();
+        if (pid) {
+            waitpid(pid, &status);
+            printf("child process exit with status %d", status);
+        } else {
+            osh_main();
+            // below should not be executed!
+            exit(0xffffffff);
+        }
     }
 }
 
