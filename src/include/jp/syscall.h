@@ -27,9 +27,12 @@ typedef enum {
     SYS_NR_UMASK=60,
     SYS_NR_CHROOT = 61,
     SYS_NR_GETPPID = 64,
+    SYS_NR_READDIR = 89,
     SYS_NR_YIELD = 158,
     SYS_NR_SLEEP = 162,
     SYS_NR_GETCWD = 183,
+
+    SYS_NR_CLEAR = 200, // only for now
 } syscall_e;
 u32 test(void);
 void yield(void);
@@ -67,3 +70,9 @@ int32_t lseek(int fd, int offset, int mode);
 char *getcwd(char *path, size_t size);
 int chroot(const char *path);
 int chdir(const char *path);
+
+
+int readdir(int fd, void *buf, int cnt);
+
+// test api
+int clear(void);

@@ -160,3 +160,13 @@ int chdir(const char *path)
 {
     return _syscall1(SYS_NR_CHDIR, (u32)path);
 }
+
+int readdir(int fd, void *buf, int cnt)
+{
+    return _syscall3(SYS_NR_READDIR, (u32)fd, (u32)buf, (u32)cnt);
+}
+
+int clear(void)
+{
+    return _syscall0(SYS_NR_CLEAR);
+}
